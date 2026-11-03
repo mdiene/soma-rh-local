@@ -10,6 +10,7 @@ import { useEmployees, useLeaveTypes } from '../lib/queries'
 import { date, num } from '../lib/format'
 import { DataTable } from '../components/DataTable'
 import { Badge, Button, ErrorNote, Modal, PageHeader, SelectField, Spinner, TextField } from '../components/ui'
+import { LeaveApprovals } from '../components/LeaveApprovals'
 
 type App = LeaveApp
 const col = createColumnHelper<App>()
@@ -18,7 +19,7 @@ const bcol = createColumnHelper<Views<'v_leave_balances'>>()
 export default function LeavesPage() {
   const [tab, setTab] = useState<'demandes' | 'soldes'>('demandes')
   const [open, setOpen] = useState<null | 'request' | 'alloc'>(null)
-  const { can, session } = useAuth()
+  const { can } = useAuth()
   const qc = useQueryClient()
   const isHr = can('rh')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -35,10 +36,14 @@ export default function LeavesPage() {
     queryFn: async () => unwrap(await dataApi.from('v_leave_balances').select('*').order('employee_number')),
   })
 
+  // la décision passe par le circuit à deux niveaux (manager puis RH) ; un rejet exige un motif
   const decide = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: 'Approuvée' | 'Rejetée' }) =>
-      unwrap(await dataApi.from('leave_applications').update({ status, approver_id: session!.user.id, approved_at: new Date().toISOString() }).eq('id', id).select()),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['leave_applications'] }); qc.invalidateQueries({ queryKey: ['leave_balances'] }) },
+    mutationFn: async ({ id, status }: { id: string; status: 'Approuvée' | 'Rejetée' }) => {
+      const note = status === 'Rejetée' ? window.prompt('Motif du rejet (obligatoire)') : null
+      if (status === 'Rejetée' && !note?.trim()) throw new Error('Un motif est obligatoire pour rejeter une demande')
+      return unwrap(await dataApi.rpc('decide_leave' as never, { p_leave_id: id, p_decision: status, p_note: note } as never))
+    },
+    onSuccess: () => { for (const k of ['leave_applications', 'leave_balances', 'my_leave_approvals']) qc.invalidateQueries({ queryKey: [k] }) },
   })
 
   const columns = [
@@ -78,6 +83,7 @@ export default function LeavesPage() {
           <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => setOpen('request')}>Nouvelle demande</Button>
         </>}
       />
+      <LeaveApprovals />
       <div className="no-print mb-4 flex gap-1 border-b border-line" role="tablist">
         {(['demandes', 'soldes'] as const).map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}

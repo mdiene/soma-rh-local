@@ -4,6 +4,7 @@ import { date } from '../lib/format'
 import { dataApi, unwrap } from '../lib/api'
 import { Badge, Empty, ErrorNote, PageHeader, Spinner } from '../components/ui'
 import { REQUEST_TYPES, type EmployeeRequest } from '../lib/requests'
+import { DelegationPanel, LeaveApprovals } from '../components/LeaveApprovals'
 
 const db = dataApi as unknown as ApiClient
 type Assignment = {
@@ -46,7 +47,9 @@ export default function ManagerPage() {
 
   return (
     <>
-      <PageHeader title="Mon équipe" description="Suivi en lecture seule des salariés qui vous sont délégués." />
+      <PageHeader title="Mon équipe" description="Suivi des salariés qui vous sont délégués ; validation de leurs congés (avant la RH)." />
+      <LeaveApprovals />
+      <DelegationPanel />
       <ErrorNote error={assignments.error || requests.error} />
       {assignments.isLoading ? <Spinner /> : activeEmployees.length === 0 ? (
         <Empty title="Aucune équipe active">Le service RH ne vous a pas encore affecté de salarié sur la période courante.</Empty>

@@ -119,6 +119,8 @@ Convention d'estimation : jours-personne, fourchette (basse = rien d'inattendu ;
 
 ### L6 — Portail salarié et manager, workflows (12-22 j) — PWA actée
 
+> **Avancement (3/11/2026)** : L6-01 et L6-02 faits — migrations `20261103200000_l6_conges_deux_niveaux.sql` et `20261103210000_l6_mes_validations.sql` : congé à deux niveaux (manager puis RH ; pas de manager affecté = étape ignorée), délégation par période (`delegate_approvals`), décision idempotente et séparation des tâches (`decide_leave`), motif obligatoire au rejet, escalade après 3 jours (`escalate_overdue_leave_steps`), notifications dans l'application, file d'e-mails `email_outbox` avec clé anti-doublon. Une décision directe sur `leave_applications` est désormais refusée. Écrans : « Congés à valider » (manager, délégué, RH), délégation dans « Mon équipe ». Test `tests/sql/l6_conges.sql`. **Non fait** : envoi réel des e-mails (accès Gmail D5 absent : la file attend un travailleur), L6-03 calendrier d'équipe, L6-04 attestations depuis modèles (les demandes d'attestation existent), L6-05 PWA. L'escalade n'est pas planifiée (aucun ordonnanceur) : la RH la déclenche.
+
 | | |
 |---|---|
 | **Tâches** | L6-01 workflow générique au-dessus de `employee_requests` (étapes, approbateur, délégation, délai). L6-02 notifications e-mail Gmail (D5) avec reprise sur erreur, journal. L6-03 calendrier d'équipe, périmètre manager. L6-04 attestations depuis modèles. L6-05 installation PWA et hors-ligne partiel. |

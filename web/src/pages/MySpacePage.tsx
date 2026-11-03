@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import { openEmployeeDocument, dataApi, unwrap, uploadEmployeeDocument } from '../lib/api'
 import { date, fcfa, monthLabel, num } from '../lib/format'
 import { Badge, Button, ErrorNote, Modal, PageHeader, SelectField, Spinner, TextField } from '../components/ui'
+import { LeaveApprovals } from '../components/LeaveApprovals'
 import { REQUEST_TYPES, type EmployeeRequest } from '../lib/requests'
 import { DocumentThumbnail } from './EmployeeDocumentsPage'
 
@@ -110,6 +111,7 @@ export default function MySpacePage() {
     <>
       <PageHeader title={`Bonjour ${emp.data?.first_name ?? ''}`} description="Vos bulletins, congés, planning et demandes."
         actions={<Button variant="primary" icon={<FilePlus2 className="h-4 w-4" />} onClick={() => setOpen(true)}>Nouvelle demande</Button>} />
+      <LeaveApprovals />
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <section className="panel p-4">
           <h2 className="text-base">Dernier bulletin</h2>

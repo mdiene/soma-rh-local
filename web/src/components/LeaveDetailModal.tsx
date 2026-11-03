@@ -22,7 +22,7 @@ const addDay = (iso: string) => {
 
 /** Fenêtre de consultation / modification d'une demande de congé, avec bon imprimable à signer. */
 export function LeaveDetailModal({ app, onClose }: { app: LeaveApp | null; onClose: () => void }) {
-  const { can, session } = useAuth()
+  const { can } = useAuth()
   const qc = useQueryClient()
   const types = useLeaveTypes()
   const company = useCompany()
@@ -64,9 +64,13 @@ export function LeaveDetailModal({ app, onClose }: { app: LeaveApp | null; onClo
     }).eq('id', app!.id).select()),
     onSuccess: () => { refresh(); setEditing(false); onClose() },
   })
+  // la décision passe par le circuit à deux niveaux (manager puis RH) ; un rejet exige un motif
   const decide = useMutation({
-    mutationFn: async (status: 'Approuvée' | 'Rejetée') =>
-      unwrap(await dataApi.from('leave_applications').update({ status, approver_id: session!.user.id, approved_at: new Date().toISOString() }).eq('id', app!.id).select()),
+    mutationFn: async (status: 'Approuvée' | 'Rejetée') => {
+      const note = status === 'Rejetée' ? window.prompt('Motif du rejet (obligatoire)') : null
+      if (status === 'Rejetée' && !note?.trim()) throw new Error('Un motif est obligatoire pour rejeter une demande')
+      return unwrap(await dataApi.rpc('decide_leave' as never, { p_leave_id: app!.id, p_decision: status, p_note: note } as never))
+    },
     onSuccess: () => { refresh(); onClose() },
   })
 
