@@ -119,7 +119,7 @@ export default function OrganigrammePage() {
           <h1 className="mr-2 text-xl font-semibold">Organigramme</h1>
           <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" aria-hidden style={{ color: 'var(--o-muted)' }} />
-            <input className="org-input w-full pl-9" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher un salarié, un poste…"
+            <input className="org-input w-full" style={{ paddingLeft: 38 }} type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher un salarié, un poste…"
               aria-label="Rechercher un salarié ou un poste" aria-controls="org-suggestions" aria-expanded={suggestions.length > 0}
               onKeyDown={(e) => { if (e.key === 'Enter' && suggestions[0]) pick(suggestions[0].id); if (e.key === 'Escape') setQuery('') }} />
             {suggestions.length > 0 && (

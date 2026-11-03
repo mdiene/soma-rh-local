@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'r
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import './organigramme.css'
-import { GROUP_ID, LINK_LABEL, ROOT_ID, chainOf, descendantsCount, layout, visibleIds, type LinkType, type OrgData, type ViewNode } from '../../lib/org'
+import { CARD_H, CARD_W, GROUP_ID, LINK_LABEL, ROOT_ID, chainOf, descendantsCount, layout, visibleIds, type LinkType, type OrgData, type ViewNode } from '../../lib/org'
 import { GroupNode, OrgEdge, PersonNode, RootNode } from './OrgNodes'
 import { OrgContext, type CardData, type EdgeData, type OrgCtx } from './orgContext'
 
-const nodeTypes = { person: PersonNode, root: RootNode, group: GroupNode }
+const nodeTypes = { person: PersonNode, root: RootNode, unattached: GroupNode } // « group » est un type réservé de React Flow
 const edgeTypes = { org: OrgEdge }
 
 /** Canevas React Flow : disposition sur la hiérarchie seulement, liens hors hiérarchie dessinés par-dessus. */
@@ -33,7 +33,7 @@ function Inner({ data, tree, collapsed, onToggle, selectedId, onSelect, matches,
 
   const nodes = useMemo<Node[]>(() => [...visible].map((id) => {
     const view = tree.get(id)!
-    return { id, type: view.kind, position: pos.get(id)!, data: { view } as CardData, draggable: false, selectable: false, focusable: true }
+    return { id, type: view.kind === 'group' ? 'unattached' : view.kind, position: pos.get(id)!, data: { view } as CardData, draggable: false, selectable: false, focusable: true, initialWidth: CARD_W, initialHeight: CARD_H }
   }), [visible, tree, pos])
 
   const edges = useMemo<Edge[]>(() => {
@@ -93,18 +93,18 @@ function Inner({ data, tree, collapsed, onToggle, selectedId, onSelect, matches,
   // recentrage animé sur un résultat de recherche (après que les branches utiles ont été dépliées)
   useEffect(() => { if (focus) { const t = window.setTimeout(() => goTo(focus.id), 80); return () => window.clearTimeout(t) } }, [focus, goTo])
   // vue d'ensemble au chargement, à chaque changement de date et sur demande
-  useEffect(() => { const t = window.setTimeout(() => rf.fitView({ duration: 420, padding: 0.18, maxZoom: 1 }), 60); return () => window.clearTimeout(t) }, [fitSignal, tree, rf])
+  useEffect(() => { const t = window.setTimeout(() => rf.fitView({ duration: 420, padding: 0.22, maxZoom: 1 }), 60); return () => window.clearTimeout(t) }, [fitSignal, tree, rf])
 
   const minimapColor = useCallback((n: Node) => (n.id === ROOT_ID ? '#7c6cff' : n.id === GROUP_ID ? '#64748b' : '#55a3ff'), [])
 
   return (
     <OrgContext.Provider value={ctx}>
       <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
-        nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} onlyRenderVisibleElements
+        nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} onlyRenderVisibleElements={visible.size > 150}
         minZoom={0.08} maxZoom={1.8} proOptions={{ hideAttribution: true }} onPaneClick={() => onSelect(null)}
         aria-label="Organigramme interactif">
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.3} color="var(--o-grid)" />
-        <MiniMap pannable zoomable nodeColor={minimapColor} maskColor="rgba(8, 12, 24, .55)" ariaLabel="Mini-carte de l'organigramme" />
+        <MiniMap pannable zoomable nodeColor={minimapColor} nodeStrokeColor={minimapColor} nodeStrokeWidth={4} nodeBorderRadius={4} maskColor="rgba(8, 12, 24, .35)" style={{ width: 170, height: 105 }} ariaLabel="Mini-carte de l'organigramme" />
         <Controls showInteractive={false} position="bottom-left" aria-label="Contrôles de zoom" />
       </ReactFlow>
     </OrgContext.Provider>

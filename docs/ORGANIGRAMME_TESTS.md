@@ -21,7 +21,8 @@ Version 1.0 — 3 novembre 2026. Décisions : `ORGANIGRAMME_DECISIONS.md`.
 | 3e | Quotes-parts > 100 % : anomalie visible | idem | anomalie `allocation_depassee` | idem | ✔ |
 | 4a | Les liens hors hiérarchie ne déplacent aucun nœud | `node --test tests/unit/org.layout.test.mjs` | positions identiques | identiques | ✔ |
 | 4b | Repli et dépli donnent les bons nœuds visibles | idem | 32 puis 1, enfant masqué | idem | ✔ |
-| 5 | Interface : rendu, recherche, clavier, thèmes, `prefers-reduced-motion`, vue liste | — | — | **non exécuté** : aucun navigateur connecté (voir DECISIONS §6) | ✖ |
+| 5 | Interface : rendu, fiche, thèmes, vue Équipes, mobile | navigateur connecté en `rh` | affichage correct | corrects (3 défauts trouvés et corrigés) | ✔ |
+| 5b | Interface : vue Liste, formulaires d'édition, export PNG, clavier complet, `prefers-reduced-motion` | — | — | **non exécuté** | ✖ |
 | 6 | Accessibilité automatisée (axe) | — | — | **non exécuté** : outil absent | ✖ |
 | 7 | Performance 500 salariés | `node --test tests/unit/org.layout.test.mjs` | disposition < 1,5 s | 148 ms (seuil de worker 100 ms dépassé) | ⚠ |
 | 8a | Build, typage, lint | `npm run build`, `npx tsc -b`, `npm run lint` | 0 erreur | 0 erreur (3 avertissements préexistants) | ✔ |

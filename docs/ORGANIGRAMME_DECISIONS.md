@@ -57,11 +57,11 @@ Disposition : calculée **uniquement** sur la hiérarchie directe ; les liens po
 
 Le jeu réel compte 27 salariés : la disposition est instantanée.
 
-## 6. Ce qui n'a PAS été vérifié
+## 6. Vérifié dans un navigateur (3/11/2026, compte `rh` fourni par Moussa Diene) et ce qui reste à vérifier
 
-- **Rendu visuel dans un navigateur** : la connexion exige un compte avec rôle ; je n'ai pas eu l'autorisation d'en créer un. L'application compile (typage, build, lint) et l'écran de connexion se charge sans erreur, mais je n'ai pas vu l'organigramme à l'écran.
-- Accessibilité automatisée (axe), contrastes mesurés, parcours clavier réel, thème clair/sombre, mobile : écrits dans le code (rôles, libellés, focus visible, cibles de 44 px, `prefers-reduced-motion`) mais **non testés**.
-- Export PNG : écrit, non essayé.
+Vérifié à l'écran : chargement (rôle `rh`), arbre avec société, branches, liens pointillé / intérim / fonctionnel étiquetés, nœud « Non rattachés » replié, mini-carte, fil d'Ariane qui suit la sélection, fiche latérale (manager, subordonnés, liens, actions RH), vue Équipes, thème clair et sombre, affichage mobile (390 px : fiche en feuille inférieure, pas de défilement horizontal).
+Défauts trouvés puis corrigés pendant cette vérification : icône de recherche qui chevauchait le texte ; fond parasite sur « Non rattachés » (le type de nœud `group` est réservé par React Flow, renommé `unattached`) ; mini-carte vide (dimensions initiales des nœuds manquantes) ; serveur de développement à relancer après l'ajout des dépendances.
+**Pas encore vérifié** : vue Liste, formulaires d'édition (changement de manager, lien, équipe), export PNG, parcours clavier complet, accessibilité automatisée (axe), contrastes mesurés. Sur mobile, la barre d'outils occupe beaucoup de hauteur (amélioration possible : la replier).
 
 ## 7. Écarts au prompt
 
