@@ -10,6 +10,7 @@ Application RH et paie de la Société Minière Africaine (Sénégal). Interface
 ## Règles
 - Le classeur Excel n'est plus la référence de la paie (la base de test évolue en permanence). Le garde-fou est la non-régression interne : après toute modification de `compute_salary_slip`, lancer `scripts/verify-payroll.ps1` (échec = empreinte différente de la référence enregistrée) ; après une évolution voulue, `scripts/verify-payroll.ps1 -Save`. Les anciens chiffres (25 bulletins, brut 4 929 179,09, net 4 662 739,89) et l'écart 26≠25 ne sont plus à prendre en compte.
 - Toujours passer par une migration (`db/migrations/AAAAMMJJHHMMSS_nom.sql`) puis l'appliquer sur la base locale (psql dans le conteneur `soma-rh-local-postgres-1`) ; régénérer `web/src/lib/database.types.ts` ensuite.
+- Après avoir appliqué une migration qui crée ou modifie une fonction, une vue ou une table sur la base en marche, recharger PostgREST : `docker exec soma-rh-local-postgres-1 psql -U soma -d soma_rh -c "notify pgrst, 'reload schema'"` (sinon l'application affiche « Could not find the function … in the schema cache »).
 - Toute nouvelle table : RLS activée + politiques par rôle (`has_role(array['rh'|'paie'])`), index sur les clés étrangères.
 - Montants en pleine précision (`numeric`) en base ; arrondi uniquement à l'affichage (`fcfa()` de `web/src/lib/format.ts`).
 - Design : palette `ink / paper / river / phosphate / signal` (voir `web/tailwind.config.js`), police Archivo, chiffres tabulaires.
