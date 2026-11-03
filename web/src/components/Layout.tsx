@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import {
-  Banknote, BarChart3, CalendarCheck2, CalendarDays, Calculator, FileSpreadsheet, LayoutDashboard, LogOut, Menu,
+  Banknote, BarChart3, CalendarCheck2, Network, CalendarDays, Calculator, FileSpreadsheet, LayoutDashboard, LogOut, Menu,
   CalendarClock, History, PieChart, Inbox, UserCircle, LockKeyhole, Settings, SlidersHorizontal, Users, Wallet, FileText,
 } from 'lucide-react'
 import { Suspense, useState } from 'react'
@@ -17,6 +17,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     { to: '/demandes', label: 'Demandes des salariés', icon: Inbox, roles: ['rh'] },
     { to: '/equipes', label: 'Équipes et managers', icon: Users, roles: ['rh'] },
     { to: '/mon-equipe', label: 'Mon équipe', icon: Users, roles: ['manager'] },
+    { to: '/equipes/organigramme', label: 'Organigramme', icon: Network, roles: ['rh', 'paie', 'manager', 'salarie'] },
   ] },
   {
     title: 'Personnel',

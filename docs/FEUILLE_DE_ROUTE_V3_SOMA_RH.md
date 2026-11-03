@@ -199,3 +199,7 @@ conception (fiche de ticket) → migration SQL → fonction de calcul ou politiq
 ## Fichiers sources
 
 `SYNTHESE_CORPUS_DOCS.md` ; `ARCHITECTURE_CIBLE_SOMA_RH.md` ; `ANALYSE_SAGE_PAIE_RH_VS_SOMA_RH.md` (§4, 4.1, 6) ; `FEUILLE_DE_ROUTE_NEXTGEN_SOMA_RH.md` (§1, 3, 7, 8) ; `FEUILLE_DE_ROUTE_SOMA_RH.md` (§10, D1-D12) ; `CADRE_DE_TRAVAIL_ET_PROPOSITION_TECHNIQUE.md` (§9) ; `ARBITRAGES_PAIE.md` ; `CLAUDE.md` ; `.github/workflows/ci.yml` ; état Git au démarrage de la session.
+
+## Module Organigramme (hors lots, demandé le 3/11/2026)
+
+Fait : organigramme interactif dans « Équipes et managers » (`/equipes/organigramme`), hiérarchie directe + liens hors hiérarchie (pointillé, intérim, fonctionnel) + équipes transverses, date d'effet, recherche, vue liste accessible, exports CSV/PNG journalisés. Détails, hypothèses à valider et mesures : `ORGANIGRAMME_DECISIONS.md` ; matrice de tests : `ORGANIGRAMME_TESTS.md`. **Non vérifié à l'écran** (aucun compte de test avec rôle). Règle modifiée : un seul manager direct valide par salarié à une date.

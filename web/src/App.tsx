@@ -32,6 +32,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const MySlipsPage = lazy(() => import('./pages/MySlipsPage'))
 const ManagerPage = lazy(() => import('./pages/ManagerPage'))
 const ManagerAssignmentsPage = lazy(() => import('./pages/ManagerAssignmentsPage'))
+const OrganigrammePage = lazy(() => import('./pages/OrganigrammePage'))
 const EmployeeDocumentsPage = lazy(() => import('./pages/EmployeeDocumentsPage'))
 
 /**
@@ -95,6 +96,8 @@ export default function App() {
         <Route path="mon-espace" element={<MySpacePage />} />
         <Route path="mon-equipe" element={<RoleGuard roles={['manager']}><ManagerPage /></RoleGuard>} />
         <Route path="equipes" element={<RoleGuard roles={['rh']}><ManagerAssignmentsPage /></RoleGuard>} />
+        {/* organigramme : visible par tout utilisateur connecté (la base limite le contenu selon le rôle) */}
+        <Route path="equipes/organigramme" element={<OrganigrammePage />} />
         <Route path="demandes" element={<RoleGuard roles={['rh']}><RequestsPage /></RoleGuard>} />
         <Route path="mes-bulletins" element={<MySlipsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
