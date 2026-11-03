@@ -134,6 +134,8 @@ Convention d'estimation : jours-personne, fourchette (basse = rien d'inattendu ;
 
 ### L8 — Règlement : simulation et suivi (10-18 j)
 
+> **Avancement (3/11/2026)** : fait — migration `20261103180000_l8_reglement.sql` (lecture seule) : `payment_summary` (ordres simulés au franc, contrôle I8 « total des ordres = total des nets à l'arrondi près », rapprochement par mode, anomalies : mode différent, paiement orphelin, compte bancaire manquant), `cash_breakdown` (billetage 10 000 → 1 F, par salarié et total), `payment_export` (contrat d'export : ordre, matricule, nom, mode, banque, compte, montant, devise XOF, reference, echeance). Panneau « Simulation des ordres et rapprochement » sur la page Paiements. Test `tests/sql/l8_reglement.sql`. Les nets étant décimaux, chaque ordre est arrondi au franc ; l'écart d'arrondi est affiché (limite : 0,5 F par ordre). Non fait : format bancaire officiel (BSIC, BNDE à valider), virements (D3), validation des coupures avec la caisse.
+
 | | |
 |---|---|
 | **Tâches** | L8-01 simulation des ordres de paiement avant génération (I8). L8-02 billetage pour le paiement en espèces. L8-03 état de rapprochement chèque/espèces/mobile money. L8-04 contrat d'export bancaire abstrait, **sans format officiel** (BSIC, BNDE à valider). |

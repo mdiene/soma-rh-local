@@ -1,0 +1,40 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Docs",
+  "colors": {
+    "primary": "#16A34A"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Introduction",
+        "pages": [
+          "ANALYSE_COMPARATIVE_CIBLE_VS_EXISTANT",
+          "ANALYSE_EXCEL",
+          "ANALYSE_SAGE_PAIE_RH_VS_SOMA_RH",
+          "ARBITRAGES_PAIE",
+          "ARCHITECTURE_CIBLE_SOMA_RH",
+          "AUDIT_COMMERCIALISATION_SOMA_RH",
+          "CADRE_DE_TRAVAIL_ET_PROPOSITION_TECHNIQUE",
+          "FEUILLE_DE_ROUTE_NEXTGEN_SOMA_RH",
+          "FEUILLE_DE_ROUTE_SOMA_RH",
+          "FEUILLE_DE_ROUTE_V3_SOMA_RH",
+          "GAP_ANALYSIS_NEXTGEN_SOMA_RH",
+          "LOCAL_PAYROLL_SCOPE_ANALYSIS",
+          "LOCAL_PAYROLL_VALIDATION",
+          "LOCAL_RESTRUCTURATION_LOG",
+          "LOCAL_SETUP",
+          "LOCAL_TEST_MATRIX",
+          "PLAN_CONTROLE_QUALITE_SOMA_RH",
+          "PLAN_EVOLUTION_SOMA_RH",
+          "PROMPT_ANALYSE_ET_FEUILLE_DE_ROUTE_SOMA_RH",
+          "PROMPT_RESTRUCTURATION_LOCALE_SOMA_RH",
+          "PROMPT_RESTRUCTURATION_LOCALE_SOMA_RH.v1",
+          "REGISTRE_RISQUES_DECISIONS_SOMA_RH",
+          "SYNTHESE_CORPUS_DOCS"
+        ]
+      }
+    ]
+  }
+}

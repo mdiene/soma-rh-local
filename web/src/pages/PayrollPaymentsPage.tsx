@@ -9,6 +9,7 @@ import { useCompany } from '../lib/queries'
 import { date, fcfa, monthLabel } from '../lib/format'
 import { Badge, Button, ErrorNote, Modal, PageHeader, Spinner, TextField } from '../components/ui'
 import { PrintPortal, printPortal } from '../components/PrintPortal'
+import { PaymentControls } from '../components/PaymentControls'
 
 const db = dataApi as unknown as ApiClient
 type Slip = { id: string; employee_id: string; employee_number: string; employee_name: string; payment_mode: string | null; net_pay: number; employee: { phone_personal: string | null; phone_work: string | null } | null }
@@ -103,6 +104,8 @@ export default function PayrollPaymentsPage() {
           <p className="text-sm tabular-nums">{modes.map((m) => `${m} : ${fcfa(total(rows.filter((r) => r.mode === m)))} F`).join(' · ')}</p>
         </div>
       </div>
+
+      <PaymentControls entryId={id!} period={e.period_start} canExport={canPay} />
 
       <div className="no-print mb-3 flex flex-wrap items-center gap-2">
         <Button size="sm" variant={mode === '' ? 'primary' : 'ghost'} onClick={() => setMode('')}>Tous</Button>
