@@ -3,7 +3,8 @@ import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { dataApi, transitionPayroll, unwrap } from '../lib/api'
 import { fcfa, monthLabel } from '../lib/format'
-import { Button, ErrorNote, Modal, TextField } from './ui'
+import { Button, ErrorNote, Modal, SelectField, TextField } from './ui'
+import { useEmployees } from '../lib/queries'
 
 type CmpRow = { employee_number: string; name: string; prev_gross: number | null; gross: number | null; prev_net: number | null; net: number | null }
 type Cmp = { previous_period: string; rows: CmpRow[] } | null
@@ -49,6 +50,41 @@ export function ComparisonPanel({ entryId, enabled }: { entryId: string; enabled
 }
 
 /** Réouverture motivée d'une paie validée (administrateur). */
+
+/** Lot de paie : calcule seulement un type de contrat ou des salariés choisis (recalculable sans doublon). */
+export function BatchModal({ entryId, open, onClose, onDone }: { entryId: string; open: boolean; onClose: () => void; onDone: (r: unknown) => void }) {
+  const employees = useEmployees()
+  const [type, setType] = useState('')
+  const [picked, setPicked] = useState<string[]>([])
+  const list = (employees.data ?? []).filter((e) => e.status === 'Active' && (!type || e.employment_type === type))
+  const m = useMutation({
+    mutationFn: async () => unwrap(await dataApi.rpc('run_payroll_batch' as never, {
+      p_payroll_entry_id: entryId, p_employment_type: type || null, p_employee_ids: picked.length ? picked : null,
+    } as never)),
+    onSuccess: (r) => { setPicked([]); onDone(r) },
+  })
+  const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
+  const target = picked.length ? `${picked.length} salarié(s) choisi(s)` : type ? `tous les ${type} (${list.length})` : `tous les salariés (${list.length})`
+  return (
+    <Modal open={open} onClose={onClose} title="Calculer un lot de bulletins"
+      footer={<><Button variant="ghost" onClick={onClose}>Revenir</Button><Button variant="primary" loading={m.isPending} onClick={() => m.mutate()}>Calculer : {target}</Button></>}>
+      <p className="mb-3 text-sm">Seuls les bulletins du lot sont (re)calculés ; les autres restent inchangés. Relancer le même lot ne crée aucun doublon.</p>
+      <SelectField label="Type de contrat" value={type} onChange={(e) => { setType(e.target.value); setPicked([]) }}>
+        <option value="">Tous</option><option value="CDI">CDI</option><option value="CDD">CDD</option>
+      </SelectField>
+      <p className="mt-3 text-xs text-ink-muted">Ou cochez des salariés précis (ignore le type de contrat) :</p>
+      <div className="mt-1 max-h-56 overflow-auto rounded border border-line p-2 text-sm">
+        {list.map((e) => (
+          <label key={e.id} className="flex items-center gap-2 py-0.5">
+            <input type="checkbox" checked={picked.includes(e.id)} onChange={() => toggle(e.id)} />
+            {e.employee_number} {e.last_name} {e.first_name}
+          </label>
+        ))}
+      </div>
+      <div className="mt-3"><ErrorNote error={m.error} /></div>
+    </Modal>
+  )
+}
 
 /** Remet une paie à l'état « Calculée » (ou la rouvre si elle est clôturée), avec motif, journalisé. */
 export function RevertModal({ entryId, status, open, onClose, onDone }: { entryId: string; status: string; open: boolean; onClose: () => void; onDone: () => void }) {

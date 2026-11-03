@@ -5,11 +5,14 @@ import { dataApi, unwrap } from '../lib/api'
 import { useCompany } from '../lib/queries'
 import { monthLabel } from '../lib/format'
 import { SalarySlipDocument } from '../components/SalarySlipDocument'
+import { SlipExplain } from '../components/SlipExplain'
+import { useAuth } from '../lib/auth'
 import { Button, ErrorNote, Spinner } from '../components/ui'
 
 export default function SalarySlipPage() {
   const { id } = useParams()
   const nav = useNavigate()
+  const { can } = useAuth()
   const company = useCompany()
   const q = useQuery({
     queryKey: ['slip', id],
@@ -49,6 +52,7 @@ export default function SalarySlipPage() {
         </div>
       </div>
       <SalarySlipDocument slip={slip} details={details} ytd={ytd} company={company.data} />
+      {can('paie', 'rh') && <SlipExplain slipId={slip.id} />}
     </>
   )
 }

@@ -24,9 +24,11 @@ do $$
 declare
   c t_ctx; e_dec uuid; e_jan uuid; loan uuid; pair record;
   n0 numeric; n1 numeric; n2 numeric; g0 numeric; g1 numeric; cnt int; a0 int; a1 int;
-  aug_before numeric; aug_after numeric;
+  aug_before numeric; aug_after numeric; v_src date;
 begin
   select * into c from t_ctx;
+  select period_start into v_src from public.payroll_entries where status in ('Validée', 'Payée', 'Clôturée') order by period_start desc limit 1;
+  if v_src is null then raise exception 'aucun mois validé pour le test'; end if;
   if c.user_paie is null or c.emp is null or c.company is null then raise exception 'jeu de données insuffisant'; end if;
 
   insert into public.payroll_entries (company_id, period_start, period_end, status) values (c.company, '2026-12-01', '2026-12-31', 'Brouillon') returning id into e_dec;
@@ -52,7 +54,7 @@ begin
     if sqlerrm not like '%au moins égal au nombre d''échéances%' then raise; end if;
   end;
   begin
-    perform public.create_loan(c.emp, 'mois validé', 30000, 3, '2026-08-01');
+    perform public.create_loan(c.emp, 'mois validé', 30000, 3, v_src);
     raise exception 'prêt démarrant dans un mois validé accepté';
   exception when others then
     if sqlerrm not like '%déjà validée%' then raise; end if;
@@ -77,9 +79,9 @@ begin
 
   -- T-I6 : une correction sur un mois validé n'altère pas ce mois et s'applique à la période ouverte
   select sum(s.net_pay) into aug_before from public.salary_slips s join public.payroll_entries p on p.id = s.payroll_entry_id
-   where p.period_start = '2026-08-01' and s.status <> 'Annulé';
+   where p.period_start = v_src and s.status <> 'Annulé';
   g0 := pg_temp.slip(e_dec, c.emp, 'gross_pay');
-  perform public.create_payroll_correction(c.emp, '2026-08-01', 'gain', 25000, 'Test de régularisation');
+  perform public.create_payroll_correction(c.emp, v_src, 'gain', 25000, 'Test de régularisation');
   begin
     perform public.create_payroll_correction(c.emp, '2026-12-01', 'gain', 1000, 'mois non validé');
     raise exception 'régularisation acceptée sur un mois non validé';
@@ -92,7 +94,7 @@ begin
   select count(*) into cnt from public.additional_salaries where employee_id = c.emp and period = '2026-12-01' and component_code = 'REGUL_BRUT' and amount = 25000 and kind = 'regularisation';
   if cnt <> 1 then raise exception 'T-I6 : ligne REGUL_BRUT attendue une fois, trouvée %', cnt; end if;
   select sum(s.net_pay) into aug_after from public.salary_slips s join public.payroll_entries p on p.id = s.payroll_entry_id
-   where p.period_start = '2026-08-01' and s.status <> 'Annulé';
+   where p.period_start = v_src and s.status <> 'Annulé';
   if aug_after <> aug_before then raise exception 'T-I6 : le mois validé a changé (% -> %)', aug_before, aug_after; end if;
   perform public.run_payroll_entry(e_dec);
   if (select count(*) from public.additional_salaries where employee_id = c.emp and period = '2026-12-01' and component_code = 'REGUL_BRUT') <> 1 then

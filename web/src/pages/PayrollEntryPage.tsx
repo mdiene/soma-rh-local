@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createColumnHelper } from '@tanstack/react-table'
-import { ArrowLeft, Ban, BookOpen, CheckCircle2, ChevronRight, Banknote, Download, FileText, LockKeyhole, Play, RotateCcw, Printer, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Ban, BookOpen, CheckCircle2, ChevronRight, Banknote, Download, FileText, LockKeyhole, Play, RotateCcw, Printer, Trash2, Users, X } from 'lucide-react'
 import { DeletePayrollModal } from '../components/DeletePayrollModal'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { PayrollRefusal, REVERTIBLE, dataApi, transitionPayroll, unwrap, type Views } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { date, fcfa, monthLabel } from '../lib/format'
-import { ComparisonPanel, RevertModal, downloadPayrollSummary } from '../components/PayrollEntryExtras'
+import { BatchModal, ComparisonPanel, RevertModal, downloadPayrollSummary } from '../components/PayrollEntryExtras'
 import { DataTable } from '../components/DataTable'
 import { Badge, Button, ErrorNote, Figure, Modal, PageHeader, Spinner, TextField } from '../components/ui'
 
@@ -42,7 +42,7 @@ export default function PayrollEntryPage() {
   const nav = useNavigate()
   const qc = useQueryClient()
   const { can } = useAuth()
-  const [confirm, setConfirm] = useState<null | 'submit' | 'cancel' | 'delete' | 'reopen'>(null)
+  const [confirm, setConfirm] = useState<null | 'submit' | 'cancel' | 'delete' | 'reopen' | 'batch'>(null)
   const [result, setResult] = useState<RunResult | null>(null)
 
   const entry = useQuery({
@@ -97,6 +97,7 @@ export default function PayrollEntryPage() {
           {rows.length > 0 && <Button icon={<Printer className="h-4 w-4" />} onClick={() => nav(`/paie/${id}/imprimer`)}>Imprimer les bulletins</Button>}
           {rows.length > 0 && <Button icon={<FileText className="h-4 w-4" />} onClick={() => nav(`/paie/${id}/rapport`)}>Rapport de clôture</Button>}
           {can('paie', 'rh') && editable && <Button icon={<Play className="h-4 w-4" />} loading={run.isPending} onClick={() => run.mutate()}>{rows.length ? 'Recalculer' : 'Calculer les bulletins'}</Button>}
+          {can('paie', 'rh') && editable && <Button variant="ghost" icon={<Users className="h-4 w-4" />} onClick={() => setConfirm('batch')}>Calculer un lot…</Button>}
           {can('admin') && e.status === 'Calculée' && <Button variant="primary" icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => setConfirm('submit')}>Valider la paie</Button>}
           {e.status === 'Validée' && <Button icon={<Banknote className="h-4 w-4" />} onClick={() => nav(`/paie/${id}/paiements`)}>Paiements</Button>}
           {rows.length > 0 && <Button icon={<Download className="h-4 w-4" />} onClick={() => downloadPayrollSummary(id!, e.period_start)}>Synthèse (CSV)</Button>}
@@ -191,6 +192,7 @@ export default function PayrollEntryPage() {
         <DataTable data={rows} columns={columns} footer exportName={`livre-de-paie-${e.period_start.slice(0, 7)}`} onRowClick={(r) => nav(`/bulletins/${r.salary_slip_id}`)} />
       )}
 
+      <BatchModal entryId={id!} open={confirm === 'batch'} onClose={() => setConfirm(null)} onDone={(r) => { setConfirm(null); setResult(r as RunResult); refresh() }} />
       <RevertModal entryId={id!} status={e.status} open={confirm === 'reopen'} onClose={() => setConfirm(null)} onDone={() => { setConfirm(null); refresh() }} />
       <Modal open={confirm === 'submit'} onClose={() => setConfirm(null)} title="Valider la paie"
         footer={<><Button variant="ghost" onClick={() => setConfirm(null)}>Revenir</Button><Button variant="primary" loading={submit.isPending} onClick={() => submit.mutate()}>Valider {rows.length} bulletin(s)</Button></>}>

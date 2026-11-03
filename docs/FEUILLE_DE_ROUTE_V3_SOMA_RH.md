@@ -88,6 +88,8 @@ Convention d'estimation : jours-personne, fourchette (basse = rien d'inattendu ;
 
 ### L3 — Gardiens 24 h/24 : planning et bordereau d'heures (8-15 j) — priorité actée
 
+> **REPORTÉ (3/11/2026, décision du propriétaire)** : les gardiens auront plus tard un système spécifique. L3 sort du plan courant ; aucun autre lot n'en dépend. Les majorations de nuit (R3 / Q10) restent hors périmètre.
+
 | | |
 |---|---|
 | **Objectif** | Rotation et affectation par poste (D11), heures supplémentaires approuvées. |
@@ -107,6 +109,8 @@ Convention d'estimation : jours-personne, fourchette (basse = rien d'inattendu ;
 | **Risques / repli** | Perte de la clé = perte des RIB : procédure de sauvegarde de clé **avant** le backfill. |
 
 ### L5 — Gabarits d'écran, lot de paie, bulletin expliqué (10-18 j)
+
+> **Avancement (3/11/2026)** : fait — migration `20261103150000_l5_bulletin_explique_lot_filtre.sql` : `salary_slip_explained` (cumul annuel par rubrique, coût employeur, « expliquer ce montant » reconstitué depuis base × quantité × taux), `run_payroll_batch` (lot filtré par type de contrat ou par salariés choisis, idempotent ; `run_payroll_entry` en devient le cas sans filtre). Écrans : bloc « Détail, cumuls annuels et coût employeur » sur le bulletin (paie et RH seulement), bouton « Calculer un lot… ». Test `tests/sql/l5_batch.sql`. L5-04 : l'éditeur de rubriques existe déjà (Paramètres > Rubriques de paie). Non fait : composants génériques `SectionedForm` / `DocumentSheet` / `FilterList` / `EditableTable` (aucun second consommateur), aperçu de structure avant affectation (L5-05), filtre par département (la table est vide).
 
 | | |
 |---|---|
