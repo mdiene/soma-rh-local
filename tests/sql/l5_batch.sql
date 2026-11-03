@@ -8,6 +8,9 @@ select
   (select user_id from public.user_roles where role = 'paie' and user_id not in (select user_id from public.user_roles where role = 'admin') order by user_id limit 1) as user_paie,
   (select company_id from public.payroll_entries limit 1) as company;
 grant select on t_ctx to authenticated;
+-- isolement : les prêts réels de la base ne doivent pas interférer avec le test (annulé en fin de transaction)
+update public.loan_installments set status = 'Annulée' where status = 'Prévue';
+update public.loans set status = 'Annulé' where status <> 'Annulé';
 
 do $$
 declare

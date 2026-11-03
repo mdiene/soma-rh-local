@@ -11,6 +11,9 @@ select
    order by e.employee_number limit 1) as emp,
   (select company_id from public.payroll_entries limit 1) as company;
 grant select on t_ctx to authenticated;
+-- isolement : les prêts réels de la base ne doivent pas interférer avec le test (annulé en fin de transaction)
+update public.loan_installments set status = 'Annulée' where status = 'Prévue';
+update public.loans set status = 'Annulé' where status <> 'Annulé';
 
 create or replace function pg_temp.slip(p_entry uuid, p_emp uuid, p_col text) returns numeric language plpgsql as $$
 declare v numeric;
@@ -76,6 +79,7 @@ begin
   select count(*) into a1 from public.audit_log where table_name = 'additional_salaries';
   if n2 <> n1 then raise exception 'T-I19 : le recalcul change le net (% -> %)', n1, n2; end if;
   if a1 <> a0 then raise exception 'T-I19 : un recalcul à l''identique écrit % ligne(s) d''audit', a1 - a0; end if;
+-- dernière échéance d'un prêt : appliquée au premier calcul, toujours retenue au recalcul (prêt « Soldé »)  perform public.create_loan(c.emp, 'Prêt en une échéance', 5000, 1, '2026-12-01');  perform public.run_payroll_entry(e_dec);  n1 := pg_temp.slip(e_dec, c.emp, 'net_pay');  perform public.run_payroll_entry(e_dec);  n2 := pg_temp.slip(e_dec, c.emp, 'net_pay');  if n1 <> n2 then raise exception 'T-I19 : le recalcul perd la dernière échéance (% -> %)', n1, n2; end if;  if (select amount from public.additional_salaries where employee_id = c.emp and period = '2026-12-01' and component_code = 'RET_PRET') <> 15000 then    raise exception 'T-I19 : retenue attendue 15000 (10000 + 5000), trouvée autre';  end if;
 
   -- T-I6 : une correction sur un mois validé n'altère pas ce mois et s'applique à la période ouverte
   select sum(s.net_pay) into aug_before from public.salary_slips s join public.payroll_entries p on p.id = s.payroll_entry_id
