@@ -37,7 +37,7 @@ Voir [SYNTHESE_CORPUS_DOCS.md](./SYNTHESE_CORPUS_DOCS.md), [ARCHITECTURE_CIBLE_S
 | # | Question | Recommandation par défaut |
 |---|---|---|
 | **Q1** | **TRANCHÉE le 3/11/2026 par le propriétaire** : l'Excel n'est plus la référence (base de test changeante) et l'écart 26≠25 est abandonné. L'oracle devient la non-régression interne (`scripts/verify-payroll.ps1`, empreinte locale). Les lignes K1/K3 et la fixture « excel » ci-dessous sont caduques. — Question initiale : quel est le roster officiel de la référence d'août 2026 : les 25 salariés payés (S0026 sans paie), ou le roster actif courant (26) ? Et l'Excel reste-t-il l'oracle ? | **Deux niveaux** : fixture de 25 cas pour la *fidélité* du moteur (paramètres D10 à « excel ») + test de *cohérence interne* sur le roster courant. Mettre à jour `CLAUDE.md` en conséquence. |
-| **Q2** | Quel journal d'audit devient unique : `audit_log` ou `audit_events` ? | `audit_log` comme journal métier, `audit_events` migré dedans ; garder l'ancien en lecture jusqu'à un cycle validé. |
+| **Q2** | **TRANCHÉE le 3/11/2026 : audit_log est le journal unique** (migration 20261103100000). — Question initiale : quel journal d'audit devient unique : `audit_log` ou `audit_events` ? | `audit_log` comme journal métier, `audit_events` migré dedans ; garder l'ancien en lecture jusqu'à un cycle validé. |
 
 ### Avant L1-L4
 

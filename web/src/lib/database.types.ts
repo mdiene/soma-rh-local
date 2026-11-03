@@ -2402,6 +2402,11 @@ export type Database = {
         Returns: undefined
       }
       payroll_entry_checks: { Args: { p_payroll_entry_id: string }; Returns: Json }
+      payroll_closing_report: { Args: { p_payroll_entry_id: string }; Returns: Json }
+      try_transition_payroll_entry: {
+        Args: { p_payroll_entry_id: string; p_reason?: string | null; p_target_status: string }
+        Returns: Json
+      }
       review_employee_document: {
         Args: { p_document_id: string; p_reason?: string | null; p_status: string }
         Returns: {
@@ -2612,7 +2617,7 @@ export type Database = {
         Returns: number
       }
       submit_payroll_entry: {
-        Args: { p_payroll_entry_id: string }
+        Args: { p_payroll_entry_id: string; p_reason?: string | null }
         Returns: undefined
       }
       sync_attendance_to_payroll_inputs: {

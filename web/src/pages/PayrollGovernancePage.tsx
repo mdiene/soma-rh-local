@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardCheck, LockKeyhole, ShieldAlert } from 'lucide-react'
-import { dataApi, unwrap } from '../lib/api'
+import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardCheck, FileText, LockKeyhole, ShieldAlert } from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { PayrollRefusal, dataApi, transitionPayroll, unwrap } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { date, monthLabel } from '../lib/format'
-import { Badge, Button, Empty, ErrorNote, PageHeader, Section, Spinner } from '../components/ui'
+import { Badge, Button, Empty, ErrorNote, Modal, PageHeader, Section, Spinner, TextField } from '../components/ui'
 
 type PayrollEntry = {
   id: string
@@ -39,6 +41,7 @@ const NEXT: Record<string, { status: string; label: string }> = {
 export default function PayrollGovernancePage() {
   const { can } = useAuth()
   const qc = useQueryClient()
+  const nav = useNavigate()
   const entries = useQuery({
     queryKey: ['payroll-governance'],
     queryFn: async () => {
@@ -54,10 +57,14 @@ export default function PayrollGovernancePage() {
       }
     },
   })
+  // dérogation à la séparation des tâches : proposée à l'administrateur seulement, avec motif obligatoire
+  const [derog, setDerog] = useState<{ id: string; status: string } | null>(null)
+  const [motif, setMotif] = useState('')
   const transition = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) =>
-      unwrap(await dataApi.rpc('transition_payroll_entry', { p_payroll_entry_id: id, p_target_status: status, p_reason: null })),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['payroll-governance'] }),
+    mutationFn: async ({ id, status, reason }: { id: string; status: string; reason?: string }) =>
+      transitionPayroll(id, status, reason),
+    onSuccess: () => { setDerog(null); setMotif(''); qc.invalidateQueries({ queryKey: ['payroll-governance'] }) },
+    onError: (err, vars) => { if (err instanceof PayrollRefusal && err.code === 'SD403' && can('admin')) setDerog({ id: vars.id, status: vars.status }) },
   })
   const checks = useMutation({
     mutationFn: async (id: string) => unwrap(await dataApi.rpc('payroll_entry_checks', { p_payroll_entry_id: id })),
@@ -88,7 +95,7 @@ export default function PayrollGovernancePage() {
             const checkResult = checks.data && checks.variables === entry.id ? checks.data as CheckResult[] : null
             const checkErrors = checkResult?.filter((item) => item.niveau === 'erreur') ?? []
             return (
-              <Section key={entry.id} className={closed ? 'border-2 border-ink/20 bg-ink/[0.035] grayscale-[0.15]' : undefined} title={monthLabel(entry.period_start)} actions={<div className="flex items-center gap-2"><Badge value={entry.status} /><Button size="sm" variant="ghost" loading={checks.isPending && checks.variables === entry.id} icon={<ClipboardCheck className="h-3.5 w-3.5" />} onClick={() => checks.mutate(entry.id)}>Contrôler</Button></div>}>
+              <Section key={entry.id} className={closed ? 'border-2 border-ink/20 bg-ink/[0.035] grayscale-[0.15]' : undefined} title={monthLabel(entry.period_start)} actions={<div className="flex items-center gap-2"><Badge value={entry.status} /><Button size="sm" variant="ghost" icon={<FileText className="h-3.5 w-3.5" />} onClick={() => nav(`/paie/${entry.id}/rapport`)}>Rapport</Button><Button size="sm" variant="ghost" loading={checks.isPending && checks.variables === entry.id} icon={<ClipboardCheck className="h-3.5 w-3.5" />} onClick={() => checks.mutate(entry.id)}>Contrôler</Button></div>}>
                 <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
                   <div>
                     {closed && (
@@ -167,6 +174,14 @@ export default function PayrollGovernancePage() {
           })}
         </div>
       )}
+      <Modal open={derog !== null} onClose={() => setDerog(null)} title="Dérogation à la séparation des tâches"
+        footer={<><Button variant="ghost" onClick={() => setDerog(null)}>Annuler</Button>
+          <Button variant="primary" loading={transition.isPending} disabled={!motif.trim()}
+            onClick={() => derog && transition.mutate({ ...derog, reason: motif })}>Déroger et poursuivre</Button></>}>
+        <p className="text-sm">Vous avez préparé cette paie. En tant qu'administrateur, vous pouvez poursuivre à condition d'indiquer un motif. Il sera enregistré dans le journal d'audit.</p>
+        <TextField className="mt-3" label="Motif (obligatoire)" value={motif} onChange={(ev) => setMotif(ev.target.value)} />
+        <div className="mt-3"><ErrorNote error={derog ? transition.error : null} /></div>
+      </Modal>
     </>
   )
 }

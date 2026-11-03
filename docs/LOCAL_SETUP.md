@@ -61,3 +61,14 @@ La restauration remplace les données de `soma_rh` et demande une confirmation e
 ```
 
 Le reset complet recrée les services et réapplique les migrations présentes dans l'image PostgreSQL. Il ne recharge pas de données personnelles distantes.
+
+## Contrôles de gouvernance de la paie
+
+```powershell
+# Non-régression du moteur (référence locale dans backups/, hors Git)
+.\scripts\verify-payroll.ps1          # contrôle ; -Save après une évolution voulue
+# Export du journal d'audit hors base + vérification de la chaîne SHA-256
+.\scripts\export-audit.ps1
+# Tests SQL (annulés à la fin) : attendu « OK audit_chain » et « OK payroll_separation »
+Get-Content tests\sql\audit_chain.sql | docker exec -i soma-rh-local-postgres-1 env PGPASSWORD=$env:POSTGRES_PASSWORD psql -U soma -d soma_rh -v ON_ERROR_STOP=1
+```

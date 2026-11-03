@@ -64,6 +64,8 @@ Convention d'estimation : jours-personne, fourchette (basse = rien d'inattendu ;
 
 ### L1 — Gouvernance renforcée et audit unique (10-18 j)
 
+> **Avancement (3/11/2026)** : faits — L1-01 (contrôles de période restaurés et complétés), L1-02 (refus explicites et journalisés), L1-03 (séparation préparateur/approbateur + dérogation admin motivée), L1-04 (audit unique chaîné, snapshots en SHA-256), L1-05 (`scripts/export-audit.ps1`), L1-06 (page « Rapport de clôture »). L1-07 : le composant `Badge` existant tient lieu de StatusBadge ; aucun `ActionBar` créé (un seul consommateur). Non fait : contrôle CFCE (aucune colonne dédiée trouvée), PDF généré côté serveur (impression navigateur), snapshots chiffrés.
+
 | | |
 |---|---|
 | **Objectif** | Empêcher une clôture incorrecte et expliquer chaque décision. |

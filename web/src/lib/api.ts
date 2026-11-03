@@ -139,3 +139,18 @@ export function unwrap<R extends { data: unknown; error: { message: string } | n
   if (res.error) throw new Error(res.error.message)
   return res.data as NonNullable<R['data']>
 }
+
+/** Refus d'une transition de paie : `code` vaut 'SD403' quand la séparation des tâches s'applique. */
+export class PayrollRefusal extends Error {
+  code?: string
+  constructor(message: string, code?: string) { super(message); this.code = code }
+}
+
+/** Fait avancer une paie par la RPC qui journalise aussi les refus (L1-02). */
+export async function transitionPayroll(id: string, status: string, reason?: string | null) {
+  const res = unwrap(await dataApi.rpc('try_transition_payroll_entry', {
+    p_payroll_entry_id: id, p_target_status: status, p_reason: reason?.trim() || null,
+  })) as unknown as { ok: boolean; message?: string; code?: string }
+  if (!res.ok) throw new PayrollRefusal(res.message ?? 'Transition refusée', res.code)
+  return res
+}

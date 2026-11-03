@@ -1,15 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createColumnHelper } from '@tanstack/react-table'
-import { ArrowLeft, Ban, BookOpen, CheckCircle2, ChevronRight, Banknote, Download, LockKeyhole, Play, RotateCcw, Printer, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Ban, BookOpen, CheckCircle2, ChevronRight, Banknote, Download, FileText, LockKeyhole, Play, RotateCcw, Printer, Trash2, X } from 'lucide-react'
 import { DeletePayrollModal } from '../components/DeletePayrollModal'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { dataApi, unwrap, type Views } from '../lib/api'
+import { PayrollRefusal, dataApi, transitionPayroll, unwrap, type Views } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { date, fcfa, monthLabel } from '../lib/format'
 import { ComparisonPanel, ReopenModal, downloadPayrollSummary } from '../components/PayrollEntryExtras'
 import { DataTable } from '../components/DataTable'
-import { Badge, Button, ErrorNote, Figure, Modal, PageHeader, Spinner } from '../components/ui'
+import { Badge, Button, ErrorNote, Figure, Modal, PageHeader, Spinner, TextField } from '../components/ui'
 
 type Reg = Views<'v_payroll_register'>
 const col = createColumnHelper<Reg>()
@@ -63,9 +63,10 @@ export default function PayrollEntryPage() {
     mutationFn: async () => unwrap(await dataApi.rpc('run_payroll_entry', { p_payroll_entry_id: id! })) as unknown as RunResult,
     onSuccess: (r) => { setResult(r); refresh() },
   })
+  const [motif, setMotif] = useState('')
   const submit = useMutation({
-    mutationFn: async () => unwrap(await dataApi.rpc('submit_payroll_entry', { p_payroll_entry_id: id! })),
-    onSuccess: () => { setConfirm(null); refresh() },
+    mutationFn: async () => transitionPayroll(id!, 'Validée', motif),
+    onSuccess: () => { setConfirm(null); setMotif(''); refresh() },
   })
   type Check = { niveau: 'erreur' | 'alerte' | 'info'; code: string; salarie: string; message: string }
   const checks = useQuery({
@@ -94,6 +95,7 @@ export default function PayrollEntryPage() {
         actions={<>
           {rows.length > 0 && <Button icon={<BookOpen className="h-4 w-4" />} onClick={() => nav(`/paie/${id}/livre`)}>Livre de paie imprimable</Button>}
           {rows.length > 0 && <Button icon={<Printer className="h-4 w-4" />} onClick={() => nav(`/paie/${id}/imprimer`)}>Imprimer les bulletins</Button>}
+          {rows.length > 0 && <Button icon={<FileText className="h-4 w-4" />} onClick={() => nav(`/paie/${id}/rapport`)}>Rapport de clôture</Button>}
           {can('paie', 'rh') && editable && <Button icon={<Play className="h-4 w-4" />} loading={run.isPending} onClick={() => run.mutate()}>{rows.length ? 'Recalculer' : 'Calculer les bulletins'}</Button>}
           {can('admin') && e.status === 'Calculée' && <Button variant="primary" icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => setConfirm('submit')}>Valider la paie</Button>}
           {e.status === 'Validée' && <Button icon={<Banknote className="h-4 w-4" />} onClick={() => nav(`/paie/${id}/paiements`)}>Paiements</Button>}
@@ -193,6 +195,10 @@ export default function PayrollEntryPage() {
       <Modal open={confirm === 'submit'} onClose={() => setConfirm(null)} title="Valider la paie"
         footer={<><Button variant="ghost" onClick={() => setConfirm(null)}>Revenir</Button><Button variant="primary" loading={submit.isPending} onClick={() => submit.mutate()}>Valider {rows.length} bulletin(s)</Button></>}>
         <p className="text-sm">Une fois validés, les bulletins de {monthLabel(e.period_start)} ne peuvent plus être recalculés et deviennent visibles par les salariés.</p>
+        {submit.error instanceof PayrollRefusal && submit.error.code === 'SD403' && (
+          <TextField className="mt-3" label="Motif de la dérogation (obligatoire)" value={motif} onChange={(ev) => setMotif(ev.target.value)}
+            hint="Vous avez préparé cette paie : en tant qu'administrateur, vous pouvez la valider en indiquant un motif, qui sera journalisé." />
+        )}
         <div className="mt-3"><ErrorNote error={submit.error} /></div>
       </Modal>
       <Modal open={confirm === 'cancel'} onClose={() => setConfirm(null)} title="Annuler le traitement"
