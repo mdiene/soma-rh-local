@@ -60,7 +60,7 @@ export default function PayrollPaymentsPage() {
       })
       return unwrap(await db.from('salary_payments').upsert(recs, { onConflict: 'slip_id' }))
     },
-    onSuccess: () => { setOpen(false); setSel(new Set()); qc.invalidateQueries({ queryKey: ['pay_status'] }) },
+    onSuccess: () => { setOpen(false); setSel(new Set()); for (const k of ['pay_status', 'pay_summary', 'slip_payments', 'entry_payments']) qc.invalidateQueries({ queryKey: [k] }) },
   })
 
   const exportCsv = (m: string) => {

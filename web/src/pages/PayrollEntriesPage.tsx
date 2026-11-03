@@ -1,8 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { dataApi, unwrap } from '../lib/api'
+import { dataApi, unwrap, type ApiClient } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { selectable, useCompany, usePaymentModes, usePayrollEntries } from '../lib/queries'
 import { currentPeriod, date, monthBounds, monthLabel } from '../lib/format'
@@ -13,6 +13,12 @@ export default function PayrollEntriesPage() {
   const nav = useNavigate()
   const { can } = useAuth()
   const [open, setOpen] = useState(false)
+  // avancement du paiement par paie (fiche de paiement des salaires)
+  const paid = useQuery({
+    queryKey: ['entry_payments'],
+    queryFn: async () => unwrap(await (dataApi as unknown as ApiClient).from('v_payroll_entry_payments').select('*')) as unknown as { payroll_entry_id: string; slips: number; paid: number }[],
+  })
+  const progress = new Map((paid.data ?? []).map((p) => [p.payroll_entry_id, { slips: Number(p.slips), paid: Number(p.paid) }]))
 
   return (
     <>
@@ -31,7 +37,12 @@ export default function PayrollEntriesPage() {
               <button onClick={() => nav(`/paie/${e.id}`)} className="grid w-full grid-cols-[1fr_auto] items-center gap-4 px-4 py-3 text-left hover:bg-river-light/40 sm:grid-cols-[12rem_1fr_auto]">
                 <span className="text-base font-semibold" style={{ fontStretch: '82%' }}>{monthLabel(e.period_start)}</span>
                 <span className="hidden text-sm text-ink-soft sm:block">Du {date(e.period_start)} au {date(e.period_end)} · paiement par {e.payment_mode}{e.notes ? ` · ${e.notes}` : ''}</span>
-                <Badge value={e.status} />
+                <span className="flex items-center gap-2">
+                  {e.status === 'Validée' && progress.get(e.id) && (
+                    <Badge value={progress.get(e.id)!.paid === progress.get(e.id)!.slips ? 'Payé' : 'À payer'} label={`Payé ${progress.get(e.id)!.paid}/${progress.get(e.id)!.slips}`} />
+                  )}
+                  <Badge value={e.status} />
+                </span>
               </button>
             </li>
           ))}

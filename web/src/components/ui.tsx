@@ -64,6 +64,10 @@ const BADGE: Record<string, string> = {
   Approuvée: 'bg-river-light text-river-dark border-river/30',
   Rejetée: 'bg-signal-light text-signal border-signal/30',
   Clôturée: 'bg-ink text-white border-ink',
+  // paiement : « Payé » est volontairement vif pour se repérer d'un coup d'œil dans les listes
+  Payé: 'bg-emerald-500 text-white border-emerald-600 font-semibold shadow-sm',
+  Payée: 'bg-emerald-500 text-white border-emerald-600 font-semibold shadow-sm',
+  'À payer': 'bg-amber-100 text-amber-900 border-amber-300',
   Active: 'bg-river-light text-river-dark border-river/30',
   Left: 'bg-paper text-ink-muted border-line',
   'En attente': 'bg-orange-100 text-orange-800 border-orange-300',
@@ -71,10 +75,10 @@ const BADGE: Record<string, string> = {
   Refusé: 'bg-signal-light text-signal border-signal/30',
 }
 const STATUS_LABEL: Record<string, string> = { Active: 'Actif', Left: 'Sorti', Inactive: 'Inactif', Suspended: 'Suspendu' }
-export function Badge({ value }: { value: string }) {
+export function Badge({ value, label }: { value: string; label?: string }) {
   return (
     <span className={clsx('inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium', BADGE[value] ?? 'bg-paper text-ink-soft border-line')}>
-      {STATUS_LABEL[value] ?? value}
+      {label ?? STATUS_LABEL[value] ?? value}
     </span>
   )
 }

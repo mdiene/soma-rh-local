@@ -55,11 +55,21 @@ begin
   -- bulletin expliqué : lignes présentes, cumul annuel >= montant du mois
   ex := public.salary_slip_explained((select id from public.salary_slips where status = 'Validé' order by period_start desc, employee_number limit 1));
   if jsonb_array_length(ex->'lines') = 0 then raise exception 'explication : aucune ligne'; end if;
-  for l in select * from jsonb_array_elements(ex->'lines') loop
-    if (l->>'ytd_gain')::numeric < (l->>'gain')::numeric or (l->>'ytd_deduction')::numeric < (l->>'deduction')::numeric then
-      raise exception 'explication : cumul inférieur au mois pour %', l->>'code';
-    end if;
-  end loop;
+  -- cumul recalculé indépendamment : mois + même rubrique des bulletins validés précédents de la même année
+  declare sid uuid; emp uuid; per date; exp_gain numeric;
+  begin
+    select id, employee_id, period_start into sid, emp, per from public.salary_slips where status = 'Validé' order by period_start desc, employee_number limit 1;
+    ex := public.salary_slip_explained(sid);
+    for l in select * from jsonb_array_elements(ex->'lines') loop
+      select coalesce(sum(x.gain_amount), 0) into exp_gain
+        from public.salary_slip_details x join public.salary_slips p on p.id = x.salary_slip_id
+       where p.employee_id = emp and p.status = 'Validé' and p.id <> sid and x.component_code = l->>'code'
+         and p.period_start >= date_trunc('year', per)::date and p.period_start < per;
+      if abs((l->>'ytd_gain')::numeric - ((l->>'gain')::numeric + exp_gain)) > 0.000001 then
+        raise exception 'explication : cumul incorrect pour % (% attendu %)', l->>'code', l->>'ytd_gain', (l->>'gain')::numeric + exp_gain;
+      end if;
+    end loop;
+  end;
   if (ex->>'payroll_cost') is null then raise exception 'explication : coût employeur absent'; end if;
 
   execute 'reset role';

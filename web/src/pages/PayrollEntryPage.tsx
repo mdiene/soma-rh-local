@@ -4,7 +4,7 @@ import { ArrowLeft, Ban, BookOpen, CheckCircle2, ChevronRight, Banknote, Downloa
 import { DeletePayrollModal } from '../components/DeletePayrollModal'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { PayrollRefusal, REVERTIBLE, dataApi, transitionPayroll, unwrap, type Views } from '../lib/api'
+import { PayrollRefusal, REVERTIBLE, dataApi, transitionPayroll, unwrap, type ApiClient, type Views } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { date, fcfa, monthLabel } from '../lib/format'
 import { BatchModal, ComparisonPanel, RevertModal, downloadPayrollSummary } from '../components/PayrollEntryExtras'
@@ -53,7 +53,13 @@ export default function PayrollEntryPage() {
     queryKey: ['register', id],
     queryFn: async () => unwrap(await dataApi.from('v_payroll_register').select('*').eq('payroll_entry_id', id!).order('employee_number')),
   })
+  // état « Payé » repris de la fiche de paiement des salaires
+  const payments = useQuery({
+    queryKey: ['slip_payments', id],
+    queryFn: async () => unwrap(await (dataApi as unknown as ApiClient).from('v_slip_payment_status').select('slip_id, paid').eq('payroll_entry_id', id!)) as unknown as { slip_id: string; paid: boolean }[],
+  })
   const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['slip_payments', id] })
     qc.invalidateQueries({ queryKey: ['payroll_entry', id] })
     qc.invalidateQueries({ queryKey: ['register', id] })
     qc.invalidateQueries({ queryKey: ['payroll_entries'] })
@@ -83,6 +89,7 @@ export default function PayrollEntryPage() {
   const e = entry.data
   if (!e) return <ErrorNote error={entry.error ?? 'Traitement introuvable'} />
   const rows = slips.data ?? []
+  const paidSlips = new Set((payments.data ?? []).filter((p) => p.paid).map((p) => p.slip_id))
   const editable = e.status === 'Brouillon' || e.status === 'Calculée'
   const closed = e.status === 'Clôturée'
 
@@ -189,7 +196,7 @@ export default function PayrollEntryPage() {
       {slips.isLoading ? <Spinner /> : rows.length === 0 ? (
         <p className="panel px-4 py-6 text-sm text-ink-soft">Aucun bulletin pour ce traitement. Vérifiez les variables du mois puis lancez le calcul.</p>
       ) : (
-        <DataTable data={rows} columns={columns} footer exportName={`livre-de-paie-${e.period_start.slice(0, 7)}`} onRowClick={(r) => nav(`/bulletins/${r.salary_slip_id}`)} />
+        <DataTable data={rows.map((r) => (r.salary_slip_id && paidSlips.has(r.salary_slip_id) ? { ...r, status: 'Payé' } : r))} columns={columns} footer exportName={`livre-de-paie-${e.period_start.slice(0, 7)}`} onRowClick={(r) => nav(`/bulletins/${r.salary_slip_id}`)} />
       )}
 
       <BatchModal entryId={id!} open={confirm === 'batch'} onClose={() => setConfirm(null)} onDone={(r) => { setConfirm(null); setResult(r as RunResult); refresh() }} />
