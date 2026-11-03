@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardCheck, FileText, LockKeyhole, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardCheck, FileText, LockKeyhole, RotateCcw, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PayrollRefusal, dataApi, transitionPayroll, unwrap } from '../lib/api'
+import { PayrollRefusal, REVERTIBLE, dataApi, transitionPayroll, unwrap } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { date, monthLabel } from '../lib/format'
 import { Badge, Button, Empty, ErrorNote, Modal, PageHeader, Section, Spinner, TextField } from '../components/ui'
+import { RevertModal } from '../components/PayrollEntryExtras'
 
 type PayrollEntry = {
   id: string
@@ -60,6 +61,7 @@ export default function PayrollGovernancePage() {
   // dérogation à la séparation des tâches : proposée à l'administrateur seulement, avec motif obligatoire
   const [derog, setDerog] = useState<{ id: string; status: string } | null>(null)
   const [motif, setMotif] = useState('')
+  const [revert, setRevert] = useState<{ id: string; status: string } | null>(null)
   const transition = useMutation({
     mutationFn: async ({ id, status, reason }: { id: string; status: string; reason?: string }) =>
       transitionPayroll(id, status, reason),
@@ -95,7 +97,7 @@ export default function PayrollGovernancePage() {
             const checkResult = checks.data && checks.variables === entry.id ? checks.data as CheckResult[] : null
             const checkErrors = checkResult?.filter((item) => item.niveau === 'erreur') ?? []
             return (
-              <Section key={entry.id} className={closed ? 'border-2 border-ink/20 bg-ink/[0.035] grayscale-[0.15]' : undefined} title={monthLabel(entry.period_start)} actions={<div className="flex items-center gap-2"><Badge value={entry.status} /><Button size="sm" variant="ghost" icon={<FileText className="h-3.5 w-3.5" />} onClick={() => nav(`/paie/${entry.id}/rapport`)}>Rapport</Button><Button size="sm" variant="ghost" loading={checks.isPending && checks.variables === entry.id} icon={<ClipboardCheck className="h-3.5 w-3.5" />} onClick={() => checks.mutate(entry.id)}>Contrôler</Button></div>}>
+              <Section key={entry.id} className={closed ? 'border-2 border-ink/20 bg-ink/[0.035] grayscale-[0.15]' : undefined} title={monthLabel(entry.period_start)} actions={<div className="flex items-center gap-2"><Badge value={entry.status} />{can('admin') && REVERTIBLE.includes(entry.status) && <Button size="sm" variant="ghost" icon={<RotateCcw className="h-3.5 w-3.5" />} onClick={() => setRevert({ id: entry.id, status: entry.status })}>{entry.status === 'Clôturée' ? 'Rouvrir' : 'Remettre en Calculée'}</Button>}<Button size="sm" variant="ghost" icon={<FileText className="h-3.5 w-3.5" />} onClick={() => nav(`/paie/${entry.id}/rapport`)}>Rapport</Button><Button size="sm" variant="ghost" loading={checks.isPending && checks.variables === entry.id} icon={<ClipboardCheck className="h-3.5 w-3.5" />} onClick={() => checks.mutate(entry.id)}>Contrôler</Button></div>}>
                 <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
                   <div>
                     {closed && (
@@ -174,6 +176,8 @@ export default function PayrollGovernancePage() {
           })}
         </div>
       )}
+      {revert && <RevertModal entryId={revert.id} status={revert.status} open onClose={() => setRevert(null)}
+        onDone={() => { setRevert(null); qc.invalidateQueries({ queryKey: ['payroll-governance'] }) }} />}
       <Modal open={derog !== null} onClose={() => setDerog(null)} title="Dérogation à la séparation des tâches"
         footer={<><Button variant="ghost" onClick={() => setDerog(null)}>Annuler</Button>
           <Button variant="primary" loading={transition.isPending} disabled={!motif.trim()}

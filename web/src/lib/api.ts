@@ -154,3 +154,6 @@ export async function transitionPayroll(id: string, status: string, reason?: str
   if (!res.ok) throw new PayrollRefusal(res.message ?? 'Transition refusée', res.code)
   return res
 }
+
+/** Statuts d'une paie que l'administrateur peut faire reculer (pour la corriger ou la supprimer). */
+export const REVERTIBLE = ['En revue', 'Approuvée', 'Validée', 'Payée', 'Clôturée']

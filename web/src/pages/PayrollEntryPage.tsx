@@ -4,10 +4,10 @@ import { ArrowLeft, Ban, BookOpen, CheckCircle2, ChevronRight, Banknote, Downloa
 import { DeletePayrollModal } from '../components/DeletePayrollModal'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { PayrollRefusal, dataApi, transitionPayroll, unwrap, type Views } from '../lib/api'
+import { PayrollRefusal, REVERTIBLE, dataApi, transitionPayroll, unwrap, type Views } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { date, fcfa, monthLabel } from '../lib/format'
-import { ComparisonPanel, ReopenModal, downloadPayrollSummary } from '../components/PayrollEntryExtras'
+import { ComparisonPanel, RevertModal, downloadPayrollSummary } from '../components/PayrollEntryExtras'
 import { DataTable } from '../components/DataTable'
 import { Badge, Button, ErrorNote, Figure, Modal, PageHeader, Spinner, TextField } from '../components/ui'
 
@@ -100,7 +100,7 @@ export default function PayrollEntryPage() {
           {can('admin') && e.status === 'Calculée' && <Button variant="primary" icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => setConfirm('submit')}>Valider la paie</Button>}
           {e.status === 'Validée' && <Button icon={<Banknote className="h-4 w-4" />} onClick={() => nav(`/paie/${id}/paiements`)}>Paiements</Button>}
           {rows.length > 0 && <Button icon={<Download className="h-4 w-4" />} onClick={() => downloadPayrollSummary(id!, e.period_start)}>Synthèse (CSV)</Button>}
-          {can('admin') && e.status === 'Validée' && <Button variant="ghost" icon={<RotateCcw className="h-4 w-4" />} onClick={() => setConfirm('reopen')}>Rouvrir</Button>}
+          {can('admin') && REVERTIBLE.includes(e.status) && <Button variant="ghost" icon={<RotateCcw className="h-4 w-4" />} onClick={() => setConfirm('reopen')}>{e.status === 'Clôturée' ? 'Rouvrir' : 'Remettre en Calculée'}</Button>}
           {can('admin') && e.status !== 'Annulée' && <Button variant="ghost" icon={<Ban className="h-4 w-4" />} onClick={() => setConfirm('cancel')}>Annuler</Button>}
           {can('paie', 'rh') && (e.status !== 'Validée' || can('admin')) && (
             <Button variant="ghost" className="text-signal hover:bg-signal-light hover:text-signal" icon={<Trash2 className="h-4 w-4" />} onClick={() => setConfirm('delete')}>Supprimer</Button>
@@ -191,7 +191,7 @@ export default function PayrollEntryPage() {
         <DataTable data={rows} columns={columns} footer exportName={`livre-de-paie-${e.period_start.slice(0, 7)}`} onRowClick={(r) => nav(`/bulletins/${r.salary_slip_id}`)} />
       )}
 
-      <ReopenModal entryId={id!} open={confirm === 'reopen'} onClose={() => setConfirm(null)} onDone={() => { setConfirm(null); refresh() }} />
+      <RevertModal entryId={id!} status={e.status} open={confirm === 'reopen'} onClose={() => setConfirm(null)} onDone={() => { setConfirm(null); refresh() }} />
       <Modal open={confirm === 'submit'} onClose={() => setConfirm(null)} title="Valider la paie"
         footer={<><Button variant="ghost" onClick={() => setConfirm(null)}>Revenir</Button><Button variant="primary" loading={submit.isPending} onClick={() => submit.mutate()}>Valider {rows.length} bulletin(s)</Button></>}>
         <p className="text-sm">Une fois validés, les bulletins de {monthLabel(e.period_start)} ne peuvent plus être recalculés et deviennent visibles par les salariés.</p>

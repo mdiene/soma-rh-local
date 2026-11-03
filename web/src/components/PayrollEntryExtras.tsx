@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { dataApi, unwrap } from '../lib/api'
+import { dataApi, transitionPayroll, unwrap } from '../lib/api'
 import { fcfa, monthLabel } from '../lib/format'
 import { Button, ErrorNote, Modal, TextField } from './ui'
 
@@ -49,17 +49,36 @@ export function ComparisonPanel({ entryId, enabled }: { entryId: string; enabled
 }
 
 /** Réouverture motivée d'une paie validée (administrateur). */
-export function ReopenModal({ entryId, open, onClose, onDone }: { entryId: string; open: boolean; onClose: () => void; onDone: () => void }) {
+
+/** Remet une paie à l'état « Calculée » (ou la rouvre si elle est clôturée), avec motif, journalisé. */
+export function RevertModal({ entryId, status, open, onClose, onDone }: { entryId: string; status: string; open: boolean; onClose: () => void; onDone: () => void }) {
   const [reason, setReason] = useState('')
+  const [cancelPayments, setCancelPayments] = useState(false)
+  const closed = status === 'Clôturée'
   const m = useMutation({
-    mutationFn: async () => unwrap(await dataApi.rpc('reopen_payroll_entry' as never, { p_payroll_entry_id: entryId, p_reason: reason } as never)),
-    onSuccess: () => { setReason(''); onDone() },
+    mutationFn: async () => closed
+      ? transitionPayroll(entryId, 'Réouverte', reason)
+      : unwrap(await dataApi.rpc('revert_payroll_entry' as never, { p_payroll_entry_id: entryId, p_reason: reason, p_cancel_payments: cancelPayments } as never)),
+    onSuccess: () => { setReason(''); setCancelPayments(false); onDone() },
   })
+  // la base refuse tant que l'on n'a pas confirmé l'annulation des paiements déjà enregistrés
+  const needsPaymentConfirm = m.error instanceof Error && /paiement\(s\) déjà enregistré/.test(m.error.message)
   return (
-    <Modal open={open} onClose={onClose} title="Rouvrir la paie validée"
-      footer={<><Button variant="ghost" onClick={onClose}>Revenir</Button><Button variant="danger" loading={m.isPending} disabled={reason.trim().length < 5} onClick={() => m.mutate()}>Rouvrir</Button></>}>
-      <p className="mb-3 text-sm">Les bulletins repassent en brouillon et deviennent invisibles pour les salariés jusqu’à la prochaine validation. L’opération et le motif sont enregistrés dans le journal.</p>
-      <TextField label="Motif (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} />
+    <Modal open={open} onClose={onClose} title={closed ? 'Rouvrir la paie clôturée' : 'Remettre la paie en état « Calculée »'}
+      footer={<><Button variant="ghost" onClick={onClose}>Revenir</Button><Button variant="danger" loading={m.isPending} disabled={reason.trim().length < 5 || (needsPaymentConfirm && !cancelPayments)} onClick={() => m.mutate()}>{closed ? 'Rouvrir' : 'Remettre en Calculée'}</Button></>}>
+      <p className="mb-3 text-sm">
+        {closed
+          ? 'La paie passe à « Réouverte » : elle pourra être recalculée ou supprimée.'
+          : 'Les bulletins repassent en brouillon et deviennent invisibles pour les salariés. Vous pourrez ensuite recalculer ou supprimer cette paie.'}
+        {' '}L’opération et le motif sont enregistrés dans le journal.
+      </p>
+      <TextField label="Motif (obligatoire, 5 caractères minimum)" value={reason} onChange={(e) => setReason(e.target.value)} />
+      {needsPaymentConfirm && (
+        <label className="mt-3 flex items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-1" checked={cancelPayments} onChange={(e) => setCancelPayments(e.target.checked)} />
+          <span>Annuler aussi les paiements déjà enregistrés sur cette paie (ils seront à saisir à nouveau).</span>
+        </label>
+      )}
       <div className="mt-3"><ErrorNote error={m.error} /></div>
     </Modal>
   )
