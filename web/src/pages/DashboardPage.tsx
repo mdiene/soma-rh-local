@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { fcfa, monthLabel, MONTHS_SHORT } from '../lib/format'
 import { useAuth } from '../lib/auth'
 import { usePayrollEntries } from '../lib/queries'
@@ -59,14 +59,14 @@ export default function DashboardPage() {
   const reqPending = useQuery({
     queryKey: ['employee_requests_pending'], enabled: can('rh'),
     queryFn: async () => {
-      const { count } = await (supabase as unknown as import('@supabase/supabase-js').SupabaseClient).from('employee_requests').select('id', { count: 'exact', head: true }).eq('status', 'Ouverte')
+      const { count } = await (dataApi as unknown as import('../lib/api').ApiClient).from('employee_requests').select('id', { count: 'exact', head: true }).eq('status', 'Ouverte')
       return count ?? 0
     },
   })
   const q = useQuery({
     queryKey: ['dashboard', period],
     enabled: !!period && view === 'mensuelle',
-    queryFn: async () => unwrap(await supabase.rpc('hr_dashboard', { p_period: period })) as unknown as Dashboard,
+    queryFn: async () => unwrap(await dataApi.rpc('hr_dashboard', { p_period: period })) as unknown as Dashboard,
     placeholderData: (prev) => prev,
   })
 

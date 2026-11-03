@@ -5,7 +5,7 @@ classeur Excel « GESTION DE LA PAIE DES CONGES » et sur le modèle fonctionnel
 [Frappe HR](https://github.com/frappe/hrms).
 
 * **Frontend** : React 18 + Vite + TypeScript + Tailwind CSS + TanStack Query / Table + Lucide (`web/`)
-* **Backend cible** : PostgreSQL 17 + PostgREST + authentification JWT (`supabase/`, `postgres/`, `docker-compose.yml`)
+* **Backend cible** : PostgreSQL 17 + PostgREST + authentification JWT (`db/`, `postgres/`, `docker-compose.yml`)
 * **Moteur de paie** : fonctions PL/pgSQL qui reproduisent les formules Excel au centime près
   (25 bulletins d'août 2026 identiques, voir [docs/ANALYSE_EXCEL.md](docs/ANALYSE_EXCEL.md))
 
@@ -33,10 +33,10 @@ comme hôte, `5432` comme port, `soma_rh` comme base, `soma` comme utilisateur e
 dans pgAdmin lancé dans Docker : les conteneurs communiquent via le nom de service `postgres`.
 
 Le volume PostgreSQL est initialisé une seule fois, dans l’ordre des migrations de
-[`supabase/migrations/`](C:/IT-Mozaic/SOMA-RH-local/supabase/migrations). Les secrets du fichier `.env` ne doivent jamais être commités.
+[`db/migrations/`](C:/IT-Mozaic/SOMA-RH-local/db/migrations). Les secrets du fichier `.env` ne doivent jamais être commités.
 
-La migration des données de l’instance Supabase source nécessite une chaîne PostgreSQL directe complète
-dans `SUPABASE_SOURCE_DATABASE_URL` et une chaîne cible dans `TARGET_DATABASE_URL`. Le script
+La migration des données de l’base source nécessite une chaîne PostgreSQL directe complète
+dans `SOURCE_DATABASE_URL` et une chaîne cible dans `TARGET_DATABASE_URL`. Le script
 [`scripts/migrate-postgres.ps1`](C:/IT-Mozaic/SOMA-RH-local/scripts/migrate-postgres.ps1) exécute l’export/import
 avec `pg_dump` et `pg_restore`, sans copier de données personnelles dans Git.
 Le seed de développement charge actuellement les référentiels et 26 salariés ; les bulletins ne seront
@@ -82,7 +82,7 @@ Chaque `git push` sur `main` redéploie automatiquement. Dans Claude Code, le pl
 
 ## Base de données
 
-Migrations dans `supabase/migrations/` (déjà appliquées sur le projet) :
+Migrations dans `db/migrations/` (appliquées sur la base locale) :
 
 | Fichier | Contenu |
 |---|---|
@@ -108,7 +108,7 @@ Migrations dans `supabase/migrations/` (déjà appliquées sur le projet) :
 Après chaque modification du moteur, le contrôle de non-régression recalcule les 25 bulletins d'août 2026
 avec les valeurs du classeur (voir [l'analyse](docs/ANALYSE_EXCEL.md#3-validation-du-moteur-soma-rh)).
 
-`supabase/seed/` contient la reprise des 26 salariés et des variables d'août 2026 (données personnelles :
+`db/seed/` contient la reprise des 26 salariés et des variables d'août 2026 (données personnelles :
 exclu de Git par `.gitignore`).
 
 ### Correspondance avec Frappe HR
@@ -129,9 +129,7 @@ exclu de Git par `.gitignore`).
 
 ## Outils pour Claude Code
 
-* `.mcp.json` : serveur MCP Supabase du projet. Lancez `claude /mcp` dans un terminal, choisissez **supabase**
-  puis **Authenticate**.
-* `.claude/skills/` : skills installés pour ce projet — `supabase`, `supabase-postgres-best-practices`,
+* `.claude/skills/` : skills installés pour ce projet — `supabase-postgres-best-practices`,
   `graphify`, `frontend-design`, `ui-ux-pro-max`, `ui-styling`, `design-system`, `web-design-guidelines`,
   `vercel-react-best-practices`, `vercel-composition-patterns`, `deploy-to-vercel`, `vercel-cli-with-tokens`,
   `webapp-testing`, `xlsx`.

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Lock, Save, Target } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { omit, supabase, unwrap, type Tables } from '../lib/supabase'
+import { omit, dataApi, unwrap, type Tables } from '../lib/api'
 import { selectable, useAgreements, useCompany, useContractTypes, useDesignations, useGrades, usePaymentModes } from '../lib/queries'
 import { useAuth } from '../lib/auth'
 import { currentPeriod, fcfa, monthBounds, monthLabel } from '../lib/format'
@@ -33,7 +33,7 @@ export default function EmployeeDetailPage() {
   const emp = useQuery({
     queryKey: ['employee', id],
     enabled: !isNew,
-    queryFn: async () => unwrap(await supabase.from('employees').select('*').eq('id', id!).single()),
+    queryFn: async () => unwrap(await dataApi.from('employees').select('*').eq('id', id!).single()),
   })
   const [form, setForm] = useState<Partial<Emp>>(EMPTY)
   useEffect(() => { if (emp.data) setForm(emp.data) }, [emp.data])
@@ -47,7 +47,7 @@ export default function EmployeeDetailPage() {
   const preview = useQuery({
     queryKey: ['next-employee-number'],
     enabled: isNew,
-    queryFn: async () => unwrap(await supabase.rpc('preview_employee_number')) as string,
+    queryFn: async () => unwrap(await dataApi.rpc('preview_employee_number')) as string,
   })
   const created = (location.state as { createdNumber?: string } | null)?.createdNumber
   const [changing, setChanging] = useState(false)
@@ -56,9 +56,9 @@ export default function EmployeeDetailPage() {
     mutationFn: async () => {
       const payload = omit({ ...form, company_id: form.company_id ?? company.data?.id } as Emp, 'created_at', 'updated_at', 'employee_number')
       if (isNew) {
-        return unwrap(await supabase.from('employees').insert(omit(payload, 'id') as Emp).select().single())
+        return unwrap(await dataApi.from('employees').insert(omit(payload, 'id') as Emp).select().single())
       }
-      return unwrap(await supabase.from('employees').update(payload).eq('id', id!).select().single())
+      return unwrap(await dataApi.from('employees').update(payload).eq('id', id!).select().single())
     },
     onSuccess: (row) => {
       qc.invalidateQueries({ queryKey: ['employees'] })
@@ -208,11 +208,11 @@ function SalaryAssignment({ employee }: { employee: Emp }) {
   const qc = useQueryClient()
   const q = useQuery({
     queryKey: ['assignment', employee.id],
-    queryFn: async () => unwrap(await supabase.from('salary_structure_assignments').select('*').eq('employee_id', employee.id).order('from_date', { ascending: false })),
+    queryFn: async () => unwrap(await dataApi.from('salary_structure_assignments').select('*').eq('employee_id', employee.id).order('from_date', { ascending: false })),
   })
   const structures = useQuery({
     queryKey: ['structures'],
-    queryFn: async () => unwrap(await supabase.from('salary_structures').select('*').eq('is_active', true)),
+    queryFn: async () => unwrap(await dataApi.from('salary_structures').select('*').eq('is_active', true)),
   })
   // affectation éditée : la plus récente par défaut, ou une version choisie dans l'historique
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -234,8 +234,8 @@ function SalaryAssignment({ employee }: { employee: Emp }) {
       const payload = omit({ ...f, employee_id: employee.id, structure_id: f.structure_id ?? structures.data?.[0]?.id } as Assign, 'id', 'created_at', 'updated_at')
       // modification d'une affectation existante : mise à jour par identifiant (la date peut changer,
       // y compris vers une date antérieure) ; sinon création d'une nouvelle version
-      if (f.id) return unwrap(await supabase.from('salary_structure_assignments').update(payload).eq('id', f.id).select().single())
-      return unwrap(await supabase.from('salary_structure_assignments').insert(payload).select().single())
+      if (f.id) return unwrap(await dataApi.from('salary_structure_assignments').update(payload).eq('id', f.id).select().single())
+      return unwrap(await dataApi.from('salary_structure_assignments').insert(payload).select().single())
     },
     onSuccess: (row) => { setSelectedId(row.id); qc.invalidateQueries({ queryKey: ['assignment', employee.id] }) },
   })
@@ -247,7 +247,7 @@ function SalaryAssignment({ employee }: { employee: Emp }) {
   const solve = useMutation({
     mutationFn: async () => {
       const { start, end } = monthBounds(period)
-      return unwrap(await supabase.rpc('solve_sursalaire_for_net', { p_employee_id: employee.id, p_period_start: start, p_period_end: end, p_target_net: Number(f.target_net) }))
+      return unwrap(await dataApi.rpc('solve_sursalaire_for_net', { p_employee_id: employee.id, p_period_start: start, p_period_end: end, p_target_net: Number(f.target_net) }))
     },
     onSuccess: (v) => setF((x) => ({ ...x, sursalaire: Math.round(Number(v) * 100) / 100 })),
   })
@@ -320,7 +320,7 @@ function SalaryAssignment({ employee }: { employee: Emp }) {
 function SlipHistory({ employeeId }: { employeeId: string }) {
   const q = useQuery({
     queryKey: ['slips-of', employeeId],
-    queryFn: async () => unwrap(await supabase.from('salary_slips').select('id, period_start, status, gross_pay, net_pay').eq('employee_id', employeeId).neq('status', 'Annulé').order('period_start', { ascending: false })),
+    queryFn: async () => unwrap(await dataApi.from('salary_slips').select('id, period_start, status, gross_pay, net_pay').eq('employee_id', employeeId).neq('status', 'Annulé').order('period_start', { ascending: false })),
   })
   return (
     <Section title="Bulletins">
@@ -349,7 +349,7 @@ function ChangeNumberModal({ open, onClose, employeeId, current }: { open: boole
   const [value, setValue] = useState(current)
   const [reason, setReason] = useState('')
   const change = useMutation({
-    mutationFn: async () => unwrap(await supabase.rpc('admin_change_employee_number', { p_employee_id: employeeId, p_new_number: value, p_reason: reason })),
+    mutationFn: async () => unwrap(await dataApi.rpc('admin_change_employee_number', { p_employee_id: employeeId, p_new_number: value, p_reason: reason })),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employee', employeeId] })
       qc.invalidateQueries({ queryKey: ['employees'] })

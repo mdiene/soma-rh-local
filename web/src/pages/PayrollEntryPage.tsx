@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createColumnHelper } from '@tanstack/react-table'
-import { ArrowLeft, Ban, BookOpen, CheckCircle2, ChevronRight, Banknote, Download, Play, RotateCcw, Printer, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Ban, BookOpen, CheckCircle2, ChevronRight, Banknote, Download, LockKeyhole, Play, RotateCcw, Printer, Trash2, X } from 'lucide-react'
 import { DeletePayrollModal } from '../components/DeletePayrollModal'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { supabase, unwrap, type Views } from '../lib/supabase'
+import { dataApi, unwrap, type Views } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { date, fcfa, monthLabel } from '../lib/format'
 import { ComparisonPanel, ReopenModal, downloadPayrollSummary } from '../components/PayrollEntryExtras'
@@ -47,11 +47,11 @@ export default function PayrollEntryPage() {
 
   const entry = useQuery({
     queryKey: ['payroll_entry', id],
-    queryFn: async () => unwrap(await supabase.from('payroll_entries').select('*').eq('id', id!).single()),
+    queryFn: async () => unwrap(await dataApi.from('payroll_entries').select('*').eq('id', id!).single()),
   })
   const slips = useQuery({
     queryKey: ['register', id],
-    queryFn: async () => unwrap(await supabase.from('v_payroll_register').select('*').eq('payroll_entry_id', id!).order('employee_number')),
+    queryFn: async () => unwrap(await dataApi.from('v_payroll_register').select('*').eq('payroll_entry_id', id!).order('employee_number')),
   })
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['payroll_entry', id] })
@@ -60,21 +60,21 @@ export default function PayrollEntryPage() {
     qc.invalidateQueries({ queryKey: ['dashboard'] })
   }
   const run = useMutation({
-    mutationFn: async () => unwrap(await supabase.rpc('run_payroll_entry', { p_payroll_entry_id: id! })) as unknown as RunResult,
+    mutationFn: async () => unwrap(await dataApi.rpc('run_payroll_entry', { p_payroll_entry_id: id! })) as unknown as RunResult,
     onSuccess: (r) => { setResult(r); refresh() },
   })
   const submit = useMutation({
-    mutationFn: async () => unwrap(await supabase.rpc('submit_payroll_entry', { p_payroll_entry_id: id! })),
+    mutationFn: async () => unwrap(await dataApi.rpc('submit_payroll_entry', { p_payroll_entry_id: id! })),
     onSuccess: () => { setConfirm(null); refresh() },
   })
   type Check = { niveau: 'erreur' | 'alerte' | 'info'; code: string; salarie: string; message: string }
   const checks = useQuery({
     queryKey: ['payroll_checks', id, entry.data?.status, slips.data?.length],
     enabled: !!id && !!entry.data && entry.data.status !== 'Annulée' && (slips.data?.length ?? 0) > 0,
-    queryFn: async () => (unwrap(await supabase.rpc('payroll_entry_checks', { p_payroll_entry_id: id! })) ?? []) as unknown as Check[],
+    queryFn: async () => (unwrap(await dataApi.rpc('payroll_entry_checks', { p_payroll_entry_id: id! })) ?? []) as unknown as Check[],
   })
   const cancel = useMutation({
-    mutationFn: async () => unwrap(await supabase.rpc('cancel_payroll_entry', { p_payroll_entry_id: id! })),
+    mutationFn: async () => unwrap(await dataApi.rpc('cancel_payroll_entry', { p_payroll_entry_id: id! })),
     onSuccess: () => { setConfirm(null); refresh() },
   })
 
@@ -83,6 +83,7 @@ export default function PayrollEntryPage() {
   if (!e) return <ErrorNote error={entry.error ?? 'Traitement introuvable'} />
   const rows = slips.data ?? []
   const editable = e.status === 'Brouillon' || e.status === 'Calculée'
+  const closed = e.status === 'Clôturée'
 
   return (
     <>
@@ -104,6 +105,15 @@ export default function PayrollEntryPage() {
           )}
         </>}
       />
+      {closed && (
+        <div className="mb-5 flex items-center gap-3 rounded-lg border-2 border-ink bg-ink px-4 py-3 text-white shadow-sm" role="status">
+          <LockKeyhole className="h-5 w-5 shrink-0 text-phosphate" aria-hidden />
+          <div>
+            <p className="font-semibold tracking-wide">PAIE CLÔTURÉE — LECTURE SEULE</p>
+            <p className="mt-0.5 text-xs text-white/70">Ce traitement est immuable. Les actions de modification sont désactivées.</p>
+          </div>
+        </div>
+      )}
       <DeletePayrollModal open={confirm === 'delete'} entry={e} onClose={() => setConfirm(null)} onDeleted={() => nav('/paie', { replace: true })} />
       <ErrorNote error={slips.error || run.error} />
 

@@ -63,8 +63,12 @@ const BADGE: Record<string, string> = {
   Ouverte: 'bg-phosphate-light text-ink border-phosphate/40',
   Approuvée: 'bg-river-light text-river-dark border-river/30',
   Rejetée: 'bg-signal-light text-signal border-signal/30',
+  Clôturée: 'bg-ink text-white border-ink',
   Active: 'bg-river-light text-river-dark border-river/30',
   Left: 'bg-paper text-ink-muted border-line',
+  'En attente': 'bg-orange-100 text-orange-800 border-orange-300',
+  'En attente de validation': 'bg-orange-100 text-orange-800 border-orange-300',
+  Refusé: 'bg-signal-light text-signal border-signal/30',
 }
 const STATUS_LABEL: Record<string, string> = { Active: 'Actif', Left: 'Sorti', Inactive: 'Inactif', Suspended: 'Suspendu' }
 export function Badge({ value }: { value: string }) {

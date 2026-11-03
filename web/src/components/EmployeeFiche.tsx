@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Printer } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { supabase, unwrap, type Tables } from '../lib/supabase'
+import { dataApi, unwrap, type Tables } from '../lib/api'
 import { useAgreements, useCompany, useDesignations, useGrades } from '../lib/queries'
 import { date, fcfa, monthLabel, num } from '../lib/format'
 import { Button } from './ui'
@@ -45,19 +45,19 @@ function EmployeeFicheDocument({ employee: e }: { employee: Emp }) {
   const grades = useGrades(e.agreement_code)
   const assignments = useQuery({
     queryKey: ['assignment', e.id],
-    queryFn: async () => unwrap(await supabase.from('salary_structure_assignments').select('*').eq('employee_id', e.id).order('from_date', { ascending: false })),
+    queryFn: async () => unwrap(await dataApi.from('salary_structure_assignments').select('*').eq('employee_id', e.id).order('from_date', { ascending: false })),
   })
   const structures = useQuery({
     queryKey: ['structures'],
-    queryFn: async () => unwrap(await supabase.from('salary_structures').select('*').eq('is_active', true)),
+    queryFn: async () => unwrap(await dataApi.from('salary_structures').select('*').eq('is_active', true)),
   })
   const balances = useQuery({
     queryKey: ['fiche-balances', e.id],
-    queryFn: async () => unwrap(await supabase.from('v_leave_balances').select('*').eq('employee_number', e.employee_number)),
+    queryFn: async () => unwrap(await dataApi.from('v_leave_balances').select('*').eq('employee_number', e.employee_number)),
   })
   const slips = useQuery({
     queryKey: ['slips-of', e.id],
-    queryFn: async () => unwrap(await supabase.from('salary_slips').select('id, period_start, status, gross_pay, net_pay').eq('employee_id', e.id).neq('status', 'Annulé').order('period_start', { ascending: false })),
+    queryFn: async () => unwrap(await dataApi.from('salary_slips').select('id, period_start, status, gross_pay, net_pay').eq('employee_id', e.id).neq('status', 'Annulé').order('period_start', { ascending: false })),
   })
 
   const designation = designations.data?.find((d) => d.id === e.designation_id)?.name

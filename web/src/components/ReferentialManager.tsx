@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ApiClient } from '../lib/api'
 import clsx from 'clsx'
 import { Pencil, Plus, Power, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { fcfa, num } from '../lib/format'
 import { Button, ErrorNote, Modal, SelectField, Spinner, TextField } from './ui'
@@ -45,7 +45,7 @@ export type RefConfig = {
 }
 
 // client non typé : le composant sert cinq tables différentes
-const db = supabase as unknown as SupabaseClient
+const db = dataApi as unknown as ApiClient
 
 function frError(e: unknown): Error | null {
   if (!e) return null
@@ -80,7 +80,7 @@ export function ReferentialManager({ config }: { config: RefConfig }) {
     queryFn: async () => {
       const ids = [...new Set((q.data ?? []).map((r) => r.updated_by).filter(Boolean))] as string[]
       if (!ids.length) return new Map<string, string>()
-      const rows = unwrap(await supabase.rpc('user_emails', { p_ids: ids })) as { id: string; email: string }[]
+      const rows = unwrap(await dataApi.rpc('user_emails', { p_ids: ids })) as { id: string; email: string }[]
       return new Map(rows.map((r) => [r.id, r.email]))
     },
   })
@@ -109,7 +109,7 @@ export function ReferentialManager({ config }: { config: RefConfig }) {
   const remove = useMutation({
     mutationFn: async (r: Row) => {
       const key = String(r[config.keyField])
-      const usage = unwrap(await supabase.rpc('reference_usage', { p_table: config.table, p_key: key })) as { employees: number; slips: number; entries: number; total: number }
+      const usage = unwrap(await dataApi.rpc('reference_usage', { p_table: config.table, p_key: key })) as { employees: number; slips: number; entries: number; total: number }
       if (usage.total > 0) {
         throw new Error(`« ${String(r[config.labelField])} » est utilisé(e) par ${usage.employees} salarié(s), ${usage.slips} bulletin(s) ou rattachement(s)${usage.entries ? ` et ${usage.entries} traitement(s)` : ''}. Désactivez-le(la) plutôt que de le(la) supprimer.`)
       }
@@ -319,7 +319,7 @@ export function AuditLogView() {
     queryFn: async () => {
       const ids = [...new Set((q.data ?? []).map((r) => r.actor).filter(Boolean))] as string[]
       if (!ids.length) return new Map<string, string>()
-      const rows = unwrap(await supabase.rpc('user_emails', { p_ids: ids })) as { id: string; email: string }[]
+      const rows = unwrap(await dataApi.rpc('user_emails', { p_ids: ids })) as { id: string; email: string }[]
       return new Map(rows.map((r) => [r.id, r.email]))
     },
   })

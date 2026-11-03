@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { fcfa, monthLabel } from '../lib/format'
 import { ErrorNote, Section, SelectField, Spinner, TextField } from './ui'
 
@@ -29,11 +29,11 @@ export function PayrollForecast() {
   const q = useQuery({
     queryKey: ['forecast-base'],
     queryFn: async () => {
-      const last = unwrap(await supabase.from('salary_slips').select('period_start').eq('status', 'Validé').order('period_start', { ascending: false }).limit(1))
+      const last = unwrap(await dataApi.from('salary_slips').select('period_start').eq('status', 'Validé').order('period_start', { ascending: false }).limit(1))
       const period = last[0]?.period_start as string | undefined
       if (!period) return { period: null as string | null, rows: [] as Base[] }
-      const slips = unwrap(await supabase.from('salary_slips').select('employee_id, payroll_cost, employment_type').eq('status', 'Validé').eq('period_start', period))
-      const emps = unwrap(await supabase.from('employees').select('id, contract_end, relieving_date, status').in('id', slips.map((s) => s.employee_id)))
+      const slips = unwrap(await dataApi.from('salary_slips').select('employee_id, payroll_cost, employment_type').eq('status', 'Validé').eq('period_start', period))
+      const emps = unwrap(await dataApi.from('employees').select('id, contract_end, relieving_date, status').in('id', slips.map((s) => s.employee_id)))
       const byId = new Map(emps.map((e) => [e.id, e]))
       return {
         period,

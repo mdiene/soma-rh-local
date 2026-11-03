@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { ChevronDown, ChevronLeft, ChevronRight, Download, Printer, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { fcfa, monthLabel } from '../lib/format'
 import { Button, Empty, ErrorNote, PageHeader, Spinner } from '../components/ui'
@@ -47,7 +47,7 @@ export default function MySlipsPage() {
 
   const q = useQuery({
     queryKey: ['validated-slips'],
-    queryFn: async () => unwrap(await supabase.from('salary_slips')
+    queryFn: async () => unwrap(await dataApi.from('salary_slips')
       .select('id, period_start, employee_id, employee_number, employee_name, designation, gross_pay, net_pay, employee:employees(first_name, last_name)')
       .eq('status', 'Validé')
       .order('period_start', { ascending: false })) as unknown as Slip[],

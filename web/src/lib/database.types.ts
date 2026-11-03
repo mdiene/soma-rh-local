@@ -182,7 +182,22 @@ export type Database = {
           record_key?: string | null
           table_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employee_manager_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_manager_assignments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collective_agreements: {
         Row: {
@@ -417,6 +432,109 @@ export type Database = {
           },
         ]
       }
+      employee_request_history: {
+        Row: {
+          actor_id: string
+          created_at: string
+          id: string
+          note: string | null
+          request_id: string
+          status: string
+        }
+        Insert: {
+          actor_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          request_id: string
+          status: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          request_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_request_history_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "employee_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read_at: string | null
+          request_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read_at?: string | null
+          request_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read_at?: string | null
+          request_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_notifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "employee_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_manager_assignments: {
+        Row: {
+          created_at: string
+          delegated_by: string
+          employee_id: string
+          id: string
+          manager_employee_id: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          created_at?: string
+          delegated_by?: string
+          employee_id: string
+          id?: string
+          manager_employee_id: string
+          valid_from: string
+          valid_to?: string | null
+        }
+        Update: {
+          created_at?: string
+          delegated_by?: string
+          employee_id?: string
+          id?: string
+          manager_employee_id?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           address: string | null
@@ -614,6 +732,251 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payment_modes"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      employee_documents: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          checksum: string | null
+          created_at: string
+          created_by: string
+          document_type: string
+          document_slot: number
+          employee_id: string
+          file_name: string
+          id: string
+          mime_type: string
+          rejection_reason: string | null
+          requirement_code: string | null
+          size_bytes: number
+          status: string
+          storage_path: string
+          thumbnail_path: string | null
+          submitted_at: string | null
+          title: string
+          current_version: number
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          checksum?: string | null
+          created_at?: string
+          created_by?: string
+          document_type: string
+          document_slot?: number
+          employee_id: string
+          file_name: string
+          id?: string
+          mime_type: string
+          rejection_reason?: string | null
+          requirement_code?: string | null
+          size_bytes: number
+          status?: string
+          storage_path: string
+          thumbnail_path?: string | null
+          submitted_at?: string | null
+          title: string
+          current_version?: number
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          checksum?: string | null
+          created_at?: string
+          created_by?: string
+          document_type?: string
+          document_slot?: number
+          employee_id?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          rejection_reason?: string | null
+          requirement_code?: string | null
+          size_bytes?: number
+          status?: string
+          storage_path?: string
+          thumbnail_path?: string | null
+          submitted_at?: string | null
+          title?: string
+          current_version?: number
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_document_access_log: {
+        Row: {
+          accessed_at: string
+          document_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          document_id: string
+          id?: string
+          user_id?: string
+        }
+        Update: {
+          accessed_at?: string
+          document_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_document_access_log_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "employee_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_requirements: {
+        Row: {
+          active: boolean
+          allowed_mime_types: string[]
+          code: string
+          conditional_rule: string | null
+          created_at: string
+          description: string
+          icon: string | null
+          manager_shareable: boolean
+          max_size_bytes: number
+          required: boolean
+          section_code: string
+          sort_order: number
+          title: string
+          validity_days: number | null
+        }
+        Insert: {
+          active?: boolean
+          allowed_mime_types?: string[]
+          code: string
+          conditional_rule?: string | null
+          created_at?: string
+          description: string
+          icon?: string | null
+          manager_shareable?: boolean
+          max_size_bytes?: number
+          required?: boolean
+          section_code: string
+          sort_order?: number
+          title: string
+          validity_days?: number | null
+        }
+        Update: {
+          active?: boolean
+          allowed_mime_types?: string[]
+          code?: string
+          conditional_rule?: string | null
+          created_at?: string
+          description?: string
+          icon?: string | null
+          manager_shareable?: boolean
+          max_size_bytes?: number
+          required?: boolean
+          section_code?: string
+          sort_order?: number
+          title?: string
+          validity_days?: number | null
+        }
+        Relationships: []
+      }
+      document_reviews: {
+        Row: {
+          document_id: string
+          id: string
+          reason: string | null
+          reviewed_at: string
+          reviewed_by: string
+          status: string
+        }
+        Insert: {
+          document_id: string
+          id?: string
+          reason?: string | null
+          reviewed_at?: string
+          reviewed_by?: string
+          status: string
+        }
+        Update: {
+          document_id?: string
+          id?: string
+          reason?: string | null
+          reviewed_at?: string
+          reviewed_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_reviews_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "employee_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          checksum: string | null
+          document_id: string
+          file_name: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string
+          version_number: number
+        }
+        Insert: {
+          checksum?: string | null
+          document_id: string
+          file_name: string
+          id?: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by?: string
+          version_number: number
+        }
+        Update: {
+          checksum?: string | null
+          document_id?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "employee_documents"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2039,6 +2402,54 @@ export type Database = {
         Returns: undefined
       }
       payroll_entry_checks: { Args: { p_payroll_entry_id: string }; Returns: Json }
+      review_employee_document: {
+        Args: { p_document_id: string; p_reason?: string | null; p_status: string }
+        Returns: {
+          checksum: string | null
+          created_at: string
+          created_by: string
+          current_version: number
+          document_type: string
+          employee_id: string
+          file_name: string
+          id: string
+          mime_type: string
+          rejection_reason: string | null
+          requirement_code: string | null
+          size_bytes: number
+          status: string
+          storage_path: string
+          submitted_at: string | null
+          title: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+      }
+      archive_employee_document: {
+        Args: { p_document_id: string }
+        Returns: {
+          archived_at: string | null
+          archived_by: string | null
+          checksum: string | null
+          created_at: string
+          created_by: string
+          current_version: number
+          document_type: string
+          employee_id: string
+          file_name: string
+          id: string
+          mime_type: string
+          rejection_reason: string | null
+          requirement_code: string | null
+          size_bytes: number
+          status: string
+          storage_path: string
+          submitted_at: string | null
+          title: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+      }
       claim_first_admin: { Args: never; Returns: boolean }
       compute_income_tax: {
         Args: { p_date: string; p_monthly_gross: number; p_parts: number }
@@ -2060,6 +2471,71 @@ export type Database = {
       delete_payroll_entry: {
         Args: { p_payroll_entry_id: string }
         Returns: number
+      }
+      decide_employee_request: {
+        Args: { p_note?: string | null; p_request_id: string; p_status: string }
+        Returns: {
+          amount: number | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          employee_id: string
+          id: string
+          message: string | null
+          request_type: string
+          status: string
+          target_date: string | null
+        }
+      }
+      mark_employee_notification_read: {
+        Args: { p_notification_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          message: string
+          read_at: string | null
+          request_id: string | null
+          title: string
+          user_id: string
+        }
+      }
+      manager_has_employee: {
+        Args: { p_employee_id: string; p_on_date?: string }
+        Returns: boolean
+      }
+      assign_manager_employee: {
+        Args: { p_employee_id: string; p_manager_employee_id: string; p_valid_from: string; p_valid_to?: string | null }
+        Returns: {
+          created_at: string
+          delegated_by: string
+          employee_id: string
+          id: string
+          manager_employee_id: string
+          valid_from: string
+          valid_to: string | null
+        }
+      }
+      close_manager_assignment: {
+        Args: { p_assignment_id: string; p_valid_to: string }
+        Returns: {
+          created_at: string
+          delegated_by: string
+          employee_id: string
+          id: string
+          manager_employee_id: string
+          valid_from: string
+          valid_to: string | null
+        }
+      }
+      log_employee_document_access: {
+        Args: { p_document_id: string }
+        Returns: {
+          accessed_at: string
+          document_id: string
+          id: string
+          user_id: string
+        }
       }
       create_payroll_snapshot: {
         Args: { p_payroll_entry_id: string }

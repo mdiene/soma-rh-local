@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ApiClient } from '../lib/api'
 import clsx from 'clsx'
 import { CalendarClock, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useEmployees } from '../lib/queries'
 import { currentPeriod, monthBounds, monthLabel } from '../lib/format'
@@ -15,7 +15,7 @@ import { Button, ErrorNote, Modal, PageHeader, SelectField, Spinner, TextField }
  * les types de poste ; « Générer une rotation » applique un cycle (ex. J,J,N,N,R,R).
  * Écriture réservée au rôle RH ; la paie et chaque salarié (pour lui-même) consultent.
  */
-const db = supabase as unknown as SupabaseClient
+const db = dataApi as unknown as ApiClient
 type ShiftType = { code: string; label: string; hours: number; is_night: boolean; is_rest: boolean; is_active: boolean; sort_order: number }
 type Assign = { employee_id: string; work_date: string; shift_code: string }
 
@@ -66,7 +66,7 @@ export default function PlanningPage() {
     onSuccess: refresh,
   })
   const generate = useMutation({
-    mutationFn: async () => unwrap(await supabase.rpc('generate_rotation' as never, {
+    mutationFn: async () => unwrap(await dataApi.rpc('generate_rotation' as never, {
       p_employee_ids: sel, p_from: start, p_to: end,
       p_pattern: pattern.split(',').map((x) => x.trim().toUpperCase()).filter(Boolean), p_offset: Number(offset) || 0,
     } as never)),

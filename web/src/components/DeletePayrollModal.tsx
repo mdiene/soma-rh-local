@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { supabase, unwrap, type Tables } from '../lib/supabase'
+import { dataApi, unwrap, type Tables } from '../lib/api'
 import { monthLabel } from '../lib/format'
 import { Button, ErrorNote, Modal } from './ui'
 
@@ -15,7 +15,7 @@ export function DeletePayrollModal({ open, entry, onClose, onDeleted }: {
   const [checked, setChecked] = useState(false)
   const month = monthLabel(entry.period_start)
   const del = useMutation({
-    mutationFn: async () => Number(unwrap(await supabase.rpc('delete_payroll_entry', { p_payroll_entry_id: entry.id }))),
+    mutationFn: async () => Number(unwrap(await dataApi.rpc('delete_payroll_entry', { p_payroll_entry_id: entry.id }))),
     onSuccess: async (n) => {
       setChecked(false)
       await Promise.all([

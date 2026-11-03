@@ -1,0 +1,39 @@
+{
+  "fixture_id": "soma-rh-phase2-synthetic-2026-08",
+  "description": "Cas synthetiques sans identite reelle pour la regression du moteur de paie.",
+  "period": {
+    "start": "2026-08-01",
+    "end": "2026-08-31"
+  },
+  "test_matrix": {
+    "case_count": 25,
+    "purpose": "Couverture synthetique des fonctions fiscales, sans oracle Excel ni donnees reelles."
+  },
+  "cases": [
+    { "case_id": "SYN-001", "employment_type": "CDI", "ir_parts": 1, "trimf_parts": 1, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 0 },
+    { "case_id": "SYN-002", "employment_type": "CDI", "ir_parts": 1, "trimf_parts": 1, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 4 },
+    { "case_id": "SYN-003", "employment_type": "CDI", "ir_parts": 1.5, "trimf_parts": 1, "absence_hours": 0, "sick_leave_hours": 8, "overtime_hours": 0 },
+    { "case_id": "SYN-004", "employment_type": "CDI", "ir_parts": 2, "trimf_parts": 2, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 8 },
+    { "case_id": "SYN-005", "employment_type": "CDI", "ir_parts": 2.5, "trimf_parts": 2, "absence_hours": 4, "sick_leave_hours": 0, "overtime_hours": 0 },
+    { "case_id": "SYN-006", "employment_type": "CDI", "ir_parts": 3, "trimf_parts": 3, "absence_hours": 0, "sick_leave_hours": 16, "overtime_hours": 0 },
+    { "case_id": "SYN-007", "employment_type": "CDI", "ir_parts": 3.5, "trimf_parts": 3, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 12 },
+    { "case_id": "SYN-008", "employment_type": "CDI", "ir_parts": 4, "trimf_parts": 4, "absence_hours": 8, "sick_leave_hours": 0, "overtime_hours": 0 },
+    { "case_id": "SYN-009", "employment_type": "CDI", "ir_parts": 4.5, "trimf_parts": 4, "absence_hours": 0, "sick_leave_hours": 8, "overtime_hours": 4 },
+    { "case_id": "SYN-010", "employment_type": "CDI", "ir_parts": 5, "trimf_parts": 5, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 16 },
+    { "case_id": "SYN-011", "employment_type": "CDI", "ir_parts": 1, "trimf_parts": 1, "absence_hours": 12, "sick_leave_hours": 0, "overtime_hours": 0 },
+    { "case_id": "SYN-012", "employment_type": "CDI", "ir_parts": 2, "trimf_parts": 2, "absence_hours": 0, "sick_leave_hours": 8, "overtime_hours": 8 },
+    { "case_id": "SYN-013", "employment_type": "CDI", "ir_parts": 3, "trimf_parts": 3, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 0 },
+    { "case_id": "SYN-014", "employment_type": "CDI", "ir_parts": 4, "trimf_parts": 4, "absence_hours": 4, "sick_leave_hours": 0, "overtime_hours": 4 },
+    { "case_id": "SYN-015", "employment_type": "CDI", "ir_parts": 5, "trimf_parts": 5, "absence_hours": 0, "sick_leave_hours": 16, "overtime_hours": 0 },
+    { "case_id": "SYN-016", "employment_type": "CDD", "ir_parts": 1, "trimf_parts": 1, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 0 },
+    { "case_id": "SYN-017", "employment_type": "CDD", "ir_parts": 1.5, "trimf_parts": 1, "absence_hours": 4, "sick_leave_hours": 0, "overtime_hours": 4 },
+    { "case_id": "SYN-018", "employment_type": "CDD", "ir_parts": 2, "trimf_parts": 2, "absence_hours": 0, "sick_leave_hours": 8, "overtime_hours": 0 },
+    { "case_id": "SYN-019", "employment_type": "CDD", "ir_parts": 2.5, "trimf_parts": 2, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 8 },
+    { "case_id": "SYN-020", "employment_type": "CDD", "ir_parts": 3, "trimf_parts": 3, "absence_hours": 8, "sick_leave_hours": 0, "overtime_hours": 0 },
+    { "case_id": "SYN-021", "employment_type": "CDD", "ir_parts": 3.5, "trimf_parts": 3, "absence_hours": 0, "sick_leave_hours": 16, "overtime_hours": 0 },
+    { "case_id": "SYN-022", "employment_type": "CDD", "ir_parts": 4, "trimf_parts": 4, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 12 },
+    { "case_id": "SYN-023", "employment_type": "CDD", "ir_parts": 4.5, "trimf_parts": 4, "absence_hours": 4, "sick_leave_hours": 8, "overtime_hours": 0 },
+    { "case_id": "SYN-024", "employment_type": "CDD", "ir_parts": 5, "trimf_parts": 5, "absence_hours": 0, "sick_leave_hours": 0, "overtime_hours": 16 },
+    { "case_id": "SYN-025", "employment_type": "CDD", "ir_parts": 2, "trimf_parts": 2, "absence_hours": 12, "sick_leave_hours": 0, "overtime_hours": 4 }
+  ]
+}

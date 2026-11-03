@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, MessageCircle, Pencil, Printer, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { supabase, unwrap, type Tables } from '../lib/supabase'
+import { dataApi, unwrap, type Tables } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useCompany, useLeaveTypes } from '../lib/queries'
 import { date, num } from '../lib/format'
@@ -26,7 +26,7 @@ export function LeaveDetailModal({ app, onClose }: { app: LeaveApp | null; onClo
   const qc = useQueryClient()
   const types = useLeaveTypes()
   const company = useCompany()
-  const me = useQuery({ queryKey: ['my_employee_id'], queryFn: async () => unwrap(await supabase.rpc('my_employee_id')) })
+  const me = useQuery({ queryKey: ['my_employee_id'], queryFn: async () => unwrap(await dataApi.rpc('my_employee_id')) })
   const [editing, setEditing] = useState(false)
   const [f, setF] = useState({ leave_type: '', from_date: '', to_date: '', half_day: false, reason: '' })
 
@@ -40,7 +40,7 @@ export function LeaveDetailModal({ app, onClose }: { app: LeaveApp | null; onClo
     queryKey: ['leave_balance_of', app?.employee_id, app?.leave_type],
     enabled: !!app,
     queryFn: async () => {
-      const { data } = await supabase.from('v_leave_balances').select('*').eq('employee_number', app!.employee!.employee_number)
+      const { data } = await dataApi.from('v_leave_balances').select('*').eq('employee_number', app!.employee!.employee_number)
       return data ?? []
     },
   })
@@ -49,7 +49,7 @@ export function LeaveDetailModal({ app, onClose }: { app: LeaveApp | null; onClo
     queryKey: ['employee_phone', app?.employee_id],
     enabled: !!app && can('rh'),
     queryFn: async () => {
-      const { data } = await supabase.from('employees').select('phone_personal, phone_work').eq('id', app!.employee_id).maybeSingle()
+      const { data } = await dataApi.from('employees').select('phone_personal, phone_work').eq('id', app!.employee_id).maybeSingle()
       return data?.phone_personal || data?.phone_work || null
     },
   })
@@ -59,14 +59,14 @@ export function LeaveDetailModal({ app, onClose }: { app: LeaveApp | null; onClo
     qc.invalidateQueries({ queryKey: ['leave_balances'] })
   }
   const save = useMutation({
-    mutationFn: async () => unwrap(await supabase.from('leave_applications').update({
+    mutationFn: async () => unwrap(await dataApi.from('leave_applications').update({
       leave_type: f.leave_type, from_date: f.from_date, to_date: f.to_date, half_day: f.half_day, reason: f.reason || null,
     }).eq('id', app!.id).select()),
     onSuccess: () => { refresh(); setEditing(false); onClose() },
   })
   const decide = useMutation({
     mutationFn: async (status: 'Approuvée' | 'Rejetée') =>
-      unwrap(await supabase.from('leave_applications').update({ status, approver_id: session!.user.id, approved_at: new Date().toISOString() }).eq('id', app!.id).select()),
+      unwrap(await dataApi.from('leave_applications').update({ status, approver_id: session!.user.id, approved_at: new Date().toISOString() }).eq('id', app!.id).select()),
     onSuccess: () => { refresh(); onClose() },
   })
 

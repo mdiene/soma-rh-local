@@ -1,4 +1,4 @@
-import type { Tables, Views } from '../lib/supabase'
+import type { Tables, Views } from '../lib/api'
 import { amountInWords, date, fcfa, monthLabel, num, pct } from '../lib/format'
 
 type Detail = Tables<'salary_slip_details'>

@@ -5,6 +5,11 @@ on:
   pull_request:
 
 jobs:
+  pii-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/scan-pii.sh
   web:
     runs-on: ubuntu-latest
     defaults:

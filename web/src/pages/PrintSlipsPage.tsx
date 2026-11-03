@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Printer } from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useCompany } from '../lib/queries'
 import { monthLabel } from '../lib/format'
 import { SalarySlipDocument } from '../components/SalarySlipDocument'
@@ -20,13 +20,13 @@ export default function PrintSlipsPage() {
   const q = useQuery({
     queryKey: ['print-slips', id ?? selectedIds.join(',')],
     queryFn: async () => {
-      const base = supabase.from('salary_slips').select('*').neq('status', 'Annulé')
+      const base = dataApi.from('salary_slips').select('*').neq('status', 'Annulé')
       const slips = unwrap(await (id ? base.eq('payroll_entry_id', id) : base.in('id', selectedIds))
         .order('employee_number').order('period_start'))
       const ids = slips.map((s) => s.id)
       const [details, ytd] = await Promise.all([
-        supabase.from('salary_slip_details').select('*').in('salary_slip_id', ids),
-        supabase.from('v_salary_slip_ytd').select('*').in('salary_slip_id', ids),
+        dataApi.from('salary_slip_details').select('*').in('salary_slip_id', ids),
+        dataApi.from('v_salary_slip_ytd').select('*').in('salary_slip_id', ids),
       ])
       return { slips, details: unwrap(details), ytd: unwrap(ytd) }
     },

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ChevronLeft, ChevronRight, Printer } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useCompany } from '../lib/queries'
 import { monthLabel } from '../lib/format'
 import { SalarySlipDocument } from '../components/SalarySlipDocument'
@@ -15,9 +15,9 @@ export default function SalarySlipPage() {
     queryKey: ['slip', id],
     queryFn: async () => {
       const [slip, details, ytd] = await Promise.all([
-        supabase.from('salary_slips').select('*').eq('id', id!).single(),
-        supabase.from('salary_slip_details').select('*').eq('salary_slip_id', id!),
-        supabase.from('v_salary_slip_ytd').select('*').eq('salary_slip_id', id!).maybeSingle(),
+        dataApi.from('salary_slips').select('*').eq('id', id!).single(),
+        dataApi.from('salary_slip_details').select('*').eq('salary_slip_id', id!),
+        dataApi.from('v_salary_slip_ytd').select('*').eq('salary_slip_id', id!).maybeSingle(),
       ])
       return { slip: unwrap(slip), details: unwrap(details), ytd: unwrap(ytd) }
     },
@@ -25,7 +25,7 @@ export default function SalarySlipPage() {
   const siblings = useQuery({
     queryKey: ['slip-siblings', q.data?.slip.payroll_entry_id],
     enabled: !!q.data?.slip.payroll_entry_id,
-    queryFn: async () => unwrap(await supabase.from('salary_slips').select('id, employee_number').eq('payroll_entry_id', q.data!.slip.payroll_entry_id!).neq('status', 'Annulé').order('employee_number')),
+    queryFn: async () => unwrap(await dataApi.from('salary_slips').select('id, employee_number').eq('payroll_entry_id', q.data!.slip.payroll_entry_id!).neq('status', 'Annulé').order('employee_number')),
   })
 
   if (q.isLoading) return <Spinner />

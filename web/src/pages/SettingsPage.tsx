@@ -3,7 +3,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import clsx from 'clsx'
 import { Plus, Save, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { supabase, unwrap, type Tables } from '../lib/supabase'
+import { dataApi, unwrap, type Tables } from '../lib/api'
 import { useAuth, type Role } from '../lib/auth'
 import { useAgreements, useCompany, useComponents, useEmployees, useGrades } from '../lib/queries'
 import { date, fcfa, num, pct } from '../lib/format'
@@ -49,7 +49,7 @@ export default function SettingsPage() {
 }
 
 /* ------------------------------------------------------------------ accès */
-const ROLE_LABEL: Record<Role, string> = { admin: 'Administrateur', rh: 'RH', paie: 'Paie', salarie: 'Salarié' }
+const ROLE_LABEL: Record<Role, string> = { admin: 'Administrateur', rh: 'RH', paie: 'Paie', manager: 'Manager', salarie: 'Salarié' }
 type UserRow = { user_id: string; email: string; created_at: string; last_sign_in_at: string | null; roles: Role[]; employee_id: string | null; employee_number: string | null }
 
 function AccessTab() {
@@ -57,22 +57,22 @@ function AccessTab() {
   const qc = useQueryClient()
   const employees = useEmployees()
   const claim = useMutation({
-    mutationFn: async () => unwrap(await supabase.rpc('claim_first_admin')),
+    mutationFn: async () => unwrap(await dataApi.rpc('claim_first_admin')),
     onSuccess: () => refreshRoles(),
   })
   const users = useQuery({
     queryKey: ['admin_users'], enabled: can('admin'),
-    queryFn: async () => unwrap(await supabase.rpc('admin_list_users')) as UserRow[],
+    queryFn: async () => unwrap(await dataApi.rpc('admin_list_users')) as UserRow[],
   })
   const toggle = useMutation({
     mutationFn: async ({ user, role, on }: { user: string; role: Role; on: boolean }) => on
-      ? unwrap(await supabase.from('user_roles').insert({ user_id: user, role }).select())
-      : unwrap(await supabase.from('user_roles').delete().eq('user_id', user).eq('role', role).select()),
+      ? unwrap(await dataApi.from('user_roles').insert({ user_id: user, role }).select())
+      : unwrap(await dataApi.from('user_roles').delete().eq('user_id', user).eq('role', role).select()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin_users'] }),
   })
   const link = useMutation({
     mutationFn: async ({ user, employee }: { user: string; employee: string | null }) =>
-      unwrap(await supabase.rpc('admin_link_employee', { p_user_id: user, p_employee_id: employee as string })),
+      unwrap(await dataApi.rpc('admin_link_employee', { p_user_id: user, p_employee_id: employee as string })),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin_users'] }),
   })
 
@@ -160,13 +160,13 @@ function PayrollSettingsTab() {
   const qc = useQueryClient()
   const q = useQuery({
     queryKey: ['payroll_settings'],
-    queryFn: async () => unwrap(await supabase.from('payroll_settings').select('*').order('effective_from', { ascending: false })),
+    queryFn: async () => unwrap(await dataApi.from('payroll_settings').select('*').order('effective_from', { ascending: false })),
   })
   const current = q.data?.[0]
   const [f, setF] = useState<Partial<Tables<'payroll_settings'>>>({})
   useEffect(() => { if (current) setF(current) }, [current])
   const save = useMutation({
-    mutationFn: async () => unwrap(await supabase.from('payroll_settings').update(f).eq('id', current!.id).select()),
+    mutationFn: async () => unwrap(await dataApi.from('payroll_settings').update(f).eq('id', current!.id).select()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['payroll_settings'] }),
   })
   if (q.isLoading) return <Spinner />
@@ -216,10 +216,10 @@ function TaxTab() {
     queryKey: ['tax'],
     queryFn: async () => {
       const [slabs, brackets, reds, trimf] = await Promise.all([
-        supabase.from('tax_slabs').select('*').order('effective_from', { ascending: false }),
-        supabase.from('tax_slab_brackets').select('*').order('from_amount'),
-        supabase.from('ir_family_reductions').select('*').order('parts'),
-        supabase.from('trimf_brackets').select('*').order('min_annual_gross'),
+        dataApi.from('tax_slabs').select('*').order('effective_from', { ascending: false }),
+        dataApi.from('tax_slab_brackets').select('*').order('from_amount'),
+        dataApi.from('ir_family_reductions').select('*').order('parts'),
+        dataApi.from('trimf_brackets').select('*').order('min_annual_gross'),
       ])
       return { slabs: unwrap(slabs), brackets: unwrap(brackets), reds: unwrap(reds), trimf: unwrap(trimf) }
     },
@@ -280,7 +280,7 @@ function ComponentsTab() {
   const [open, setOpen] = useState(false)
   const [f, setF] = useState({ code: '', name: '', rubric_number: 20, component_type: 'gross_earning', input_mode: 'variable' })
   const add = useMutation({
-    mutationFn: async () => unwrap(await supabase.from('salary_components').insert({ ...f, code: f.code.toUpperCase() }).select()),
+    mutationFn: async () => unwrap(await dataApi.from('salary_components').insert({ ...f, code: f.code.toUpperCase() }).select()),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['salary_components'] }); setOpen(false) },
   })
   return (
@@ -419,7 +419,7 @@ function CompanyTab() {
   const [f, setF] = useState<Partial<Tables<'companies'>>>({})
   useEffect(() => { if (company.data) setF(company.data) }, [company.data])
   const save = useMutation({
-    mutationFn: async () => unwrap(await supabase.from('companies').update(f).eq('id', company.data!.id).select()),
+    mutationFn: async () => unwrap(await dataApi.from('companies').update(f).eq('id', company.data!.id).select()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['company'] }),
   })
   const t = (k: keyof Tables<'companies'>) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value })

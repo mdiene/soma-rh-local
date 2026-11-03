@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { Calculator, Target } from 'lucide-react'
 import { useState } from 'react'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useEmployees } from '../lib/queries'
 import { currentPeriod, fcfa, monthBounds, num, pct } from '../lib/format'
 import { Button, ErrorNote, Figure, PageHeader, Section, SelectField, TextField } from '../components/ui'
@@ -22,13 +22,13 @@ export default function SimulatorPage() {
   const { start, end } = monthBounds(period)
 
   const simulate = useMutation({
-    mutationFn: async (override?: number) => unwrap(await supabase.rpc('compute_salary_slip', {
+    mutationFn: async (override?: number) => unwrap(await dataApi.rpc('compute_salary_slip', {
       p_employee_id: employeeId, p_period_start: start, p_period_end: end,
       ...(override !== undefined ? { p_sursalaire: override } : sursalaire !== '' ? { p_sursalaire: Number(sursalaire) } : {}),
     })) as unknown as Calc,
   })
   const solve = useMutation({
-    mutationFn: async () => Number(unwrap(await supabase.rpc('solve_sursalaire_for_net', { p_employee_id: employeeId, p_period_start: start, p_period_end: end, p_target_net: Number(target) }))),
+    mutationFn: async () => Number(unwrap(await dataApi.rpc('solve_sursalaire_for_net', { p_employee_id: employeeId, p_period_start: start, p_period_end: end, p_target_net: Number(target) }))),
     onSuccess: (v) => { setSursalaire(String(Math.round(v * 100) / 100)); simulate.mutate(v) },
   })
 

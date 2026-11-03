@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { selectable, useCompany, usePaymentModes, usePayrollEntries } from '../lib/queries'
 import { currentPeriod, date, monthBounds, monthLabel } from '../lib/format'
@@ -52,7 +52,7 @@ function NewEntryModal({ open, onClose }: { open: boolean; onClose: () => void }
   const create = useMutation({
     mutationFn: async () => {
       const { start, end } = monthBounds(period)
-      return unwrap(await supabase.from('payroll_entries').insert({ company_id: company.data!.id, period_start: start, period_end: end, posting_date: end, payment_mode: mode }).select().single())
+      return unwrap(await dataApi.from('payroll_entries').insert({ company_id: company.data!.id, period_start: start, period_end: end, posting_date: end, payment_mode: mode }).select().single())
     },
     onSuccess: (row) => { qc.invalidateQueries({ queryKey: ['payroll_entries'] }); onClose(); nav(`/paie/${row.id}`) },
   })

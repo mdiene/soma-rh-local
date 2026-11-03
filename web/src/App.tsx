@@ -28,6 +28,9 @@ const SimulatorPage = lazy(() => import('./pages/SimulatorPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const MySlipsPage = lazy(() => import('./pages/MySlipsPage'))
+const ManagerPage = lazy(() => import('./pages/ManagerPage'))
+const ManagerAssignmentsPage = lazy(() => import('./pages/ManagerAssignmentsPage'))
+const EmployeeDocumentsPage = lazy(() => import('./pages/EmployeeDocumentsPage'))
 
 /**
  * Accès aux écrans de gestion : réservé aux rôles RH / paie (l'administrateur a tous les droits).
@@ -43,6 +46,7 @@ function RoleGuard({ roles, children }: { roles: Role[]; children: ReactNode }) 
 function Home() {
   const { can, roles } = useAuth()
   if (!can('rh', 'paie') && roles.includes('salarie')) return <Navigate to="/mon-espace" replace />
+  if (!can('rh', 'paie') && roles.includes('manager')) return <Navigate to="/mon-equipe" replace />
   return <DashboardPage />
 }
 
@@ -65,6 +69,7 @@ export default function App() {
         <Route index element={<Home />} />
         <Route path="salaries" element={<RoleGuard roles={staff}><EmployeesPage /></RoleGuard>} />
         <Route path="salaries/:id" element={<RoleGuard roles={staff}><EmployeeDetailPage /></RoleGuard>} />
+        <Route path="dossiers-salaries" element={<RoleGuard roles={['rh']}><EmployeeDocumentsPage /></RoleGuard>} />
         <Route path="conges" element={<LeavesPage />} />
         <Route path="presences" element={<RoleGuard roles={staff}><AttendancePage /></RoleGuard>} />
         <Route path="pilotage" element={<RoleGuard roles={staff}><PilotagePage /></RoleGuard>} />
@@ -84,6 +89,8 @@ export default function App() {
         <Route path="journal" element={<RoleGuard roles={['rh']}><JournalPage /></RoleGuard>} />
         <Route path="parametres" element={roles.length === 0 ? <SettingsPage /> : <RoleGuard roles={staff}><SettingsPage /></RoleGuard>} />
         <Route path="mon-espace" element={<MySpacePage />} />
+        <Route path="mon-equipe" element={<RoleGuard roles={['manager']}><ManagerPage /></RoleGuard>} />
+        <Route path="equipes" element={<RoleGuard roles={['rh']}><ManagerAssignmentsPage /></RoleGuard>} />
         <Route path="demandes" element={<RoleGuard roles={['rh']}><RequestsPage /></RoleGuard>} />
         <Route path="mes-bulletins" element={<MySlipsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

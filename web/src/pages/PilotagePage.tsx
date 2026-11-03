@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { fcfa, monthLabel } from '../lib/format'
 import { PayrollForecast } from '../components/PayrollForecast'
 import { ErrorNote, Figure, PageHeader, Section, Spinner } from '../components/ui'
@@ -36,7 +36,7 @@ function Bars({ items, total }: { items: [string, number][]; total: number }) {
 export default function PilotagePage() {
   const q = useQuery({
     queryKey: ['hr_analytics'],
-    queryFn: async () => unwrap(await supabase.rpc('hr_analytics' as never, { p_months: 12 } as never)) as unknown as Analytics,
+    queryFn: async () => unwrap(await dataApi.rpc('hr_analytics' as never, { p_months: 12 } as never)) as unknown as Analytics,
   })
   if (q.isLoading) return <Spinner />
   const d = q.data

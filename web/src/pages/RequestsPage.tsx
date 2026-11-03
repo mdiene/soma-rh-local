@@ -1,20 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ApiClient } from '../lib/api'
 import { Check, FileText, MessageCircle, X } from 'lucide-react'
 import { useState } from 'react'
-import { supabase, unwrap } from '../lib/supabase'
-import { useAuth } from '../lib/auth'
+import { dataApi, unwrap } from '../lib/api'
 import { date, fcfa } from '../lib/format'
 import { whatsappLink } from '../lib/whatsapp'
 import { Badge, Button, ErrorNote, Modal, PageHeader, SelectField, Spinner, TextField } from '../components/ui'
 import { AttestationModal, type AttestationKind } from '../components/AttestationModal'
 import { REQUEST_TYPES, type EmployeeRequest } from '../lib/requests'
 
-const db = supabase as unknown as SupabaseClient
+const db = dataApi as unknown as ApiClient
 
 /** Demandes des salariés (attestations, acomptes, corrections…) : traitement par le service RH. */
 export default function RequestsPage() {
-  const { session } = useAuth()
   const qc = useQueryClient()
   const [status, setStatus] = useState('Ouverte')
   const [target, setTarget] = useState<{ r: EmployeeRequest; decision: 'Approuvée' | 'Rejetée' } | null>(null)
@@ -31,10 +29,18 @@ export default function RequestsPage() {
       return unwrap(await req) as EmployeeRequest[]
     },
   })
+  const requestIds = (q.data ?? []).map((r) => r.id)
+  const history = useQuery({
+    queryKey: ['employee_request_history', requestIds],
+    enabled: requestIds.length > 0,
+    queryFn: async () => unwrap(await db.from('employee_request_history').select('request_id, status, note, created_at').in('request_id', requestIds).order('created_at', { ascending: false })) as { request_id: string; status: string; note: string | null; created_at: string }[],
+  })
   const decide = useMutation({
-    mutationFn: async () => unwrap(await db.from('employee_requests').update({
-      status: target!.decision, decision_note: note.trim() || null, decided_by: session!.user.id, decided_at: new Date().toISOString(),
-    }).eq('id', target!.r.id).eq('status', 'Ouverte')),
+    mutationFn: async () => unwrap(await db.rpc('decide_employee_request' as never, {
+      p_request_id: target!.r.id,
+      p_status: target!.decision,
+      p_note: note.trim() || null,
+    } as never)),
     onSuccess: () => { setTarget(null); setNote(''); qc.invalidateQueries({ queryKey: ['employee_requests'] }) },
   })
 
@@ -69,6 +75,18 @@ export default function RequestsPage() {
                   {r.decision_note ? <p className="text-xs">Réponse : {r.decision_note}</p> : null}
                 </div>
                 <Badge value={r.status} />
+                {(history.data ?? []).filter((h) => h.request_id === r.id).length > 0 && (
+                  <details className="basis-full rounded border border-line bg-paper/50 px-3 py-2 text-xs">
+                    <summary className="cursor-pointer font-medium text-ink-soft">Historique</summary>
+                    <ul className="mt-2 space-y-1">
+                      {(history.data ?? []).filter((h) => h.request_id === r.id).map((h) => (
+                        <li key={`${h.request_id}-${h.created_at}-${h.status}`}>
+                          {date(h.created_at.slice(0, 10))} · {h.status}{h.note ? ` · ${h.note}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
                 {r.status === 'Ouverte' && (
                   <>
                     <Button size="sm" icon={<Check className="h-4 w-4" />} onClick={() => { setNote(''); setTarget({ r, decision: 'Approuvée' }) }}>Approuver</Button>
@@ -87,8 +105,9 @@ export default function RequestsPage() {
       <AttestationModal employeeId={att?.employeeId ?? null} kind={att?.kind ?? 'attestation_travail'} onClose={() => setAtt(null)} />
       <Modal open={!!target} onClose={() => setTarget(null)} title={target?.decision === 'Approuvée' ? 'Approuver la demande' : 'Rejeter la demande'}
         footer={<><Button variant="ghost" onClick={() => setTarget(null)}>Revenir</Button>
-          <Button variant={target?.decision === 'Rejetée' ? 'danger' : 'primary'} loading={decide.isPending} onClick={() => decide.mutate()}>Confirmer</Button></>}>
-        <TextField label="Réponse au salarié (facultatif)" value={note} onChange={(e) => setNote(e.target.value)} />
+          <Button variant={target?.decision === 'Rejetée' ? 'danger' : 'primary'} loading={decide.isPending}
+            disabled={target?.decision === 'Rejetée' && !note.trim()} onClick={() => decide.mutate()}>Confirmer</Button></>}>
+        <TextField label={target?.decision === 'Rejetée' ? 'Motif du rejet (obligatoire)' : 'Réponse au salarié (facultatif)'} value={note} onChange={(e) => setNote(e.target.value)} />
         {target?.r.request_type === 'acompte' && target.decision === 'Approuvée' && (
           <p className="mt-3 text-xs text-ink-soft">L’acompte n’est pas encore retenu automatiquement en paie : saisissez-le comme retenue du mois (le prêt et l’échéancier viennent au lot 5).</p>
         )}

@@ -1,0 +1,75 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: postgres/Dockerfile
+    environment:
+      POSTGRES_DB: soma_rh
+      POSTGRES_USER: soma
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - soma-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soma -d soma_rh"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  postgrest:
+    image: postgrest/postgrest:v12.2.3
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://soma:${POSTGRES_PASSWORD}@postgres:5432/soma_rh
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET in .env}
+      PGRST_JWT_AUD: authenticated
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+    ports:
+      - "3001:3000"
+
+  api:
+    build: ./api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgrest:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://soma:${POSTGRES_PASSWORD}@postgres:5432/soma_rh
+      POSTGREST_URL: http://postgrest:3000
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET in .env}
+      DOCUMENT_ROOT: /data/documents
+    ports:
+      - "8000:8000"
+    volumes:
+      - soma-document-data:/data/documents
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:?Define PGADMIN_DEFAULT_EMAIL in .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?Define PGADMIN_DEFAULT_PASSWORD in .env}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5051:80"
+    volumes:
+      - soma-pgadmin-data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:80/misc/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  soma-postgres-data:
+  soma-pgadmin-data:
+  soma-document-data:

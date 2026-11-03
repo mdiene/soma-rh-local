@@ -10,7 +10,7 @@ _archive/
 /package-lock.json
 /node_modules/
 # Données personnelles des salariés (reprise Excel)
-supabase/seed/
+db/seed/
 *.xlsx
 *.xlsm
 .env

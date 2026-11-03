@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { fcfa, monthLabel } from '../lib/format'
 import { Button, ErrorNote, Modal, TextField } from './ui'
 
@@ -12,7 +12,7 @@ type Cmp = { previous_period: string; rows: CmpRow[] } | null
 export function ComparisonPanel({ entryId, enabled }: { entryId: string; enabled: boolean }) {
   const q = useQuery({
     queryKey: ['payroll_cmp', entryId], enabled,
-    queryFn: async () => unwrap(await supabase.rpc('payroll_entry_comparison' as never, { p_payroll_entry_id: entryId } as never)) as unknown as Cmp,
+    queryFn: async () => unwrap(await dataApi.rpc('payroll_entry_comparison' as never, { p_payroll_entry_id: entryId } as never)) as unknown as Cmp,
   })
   if (!q.data) return <ErrorNote error={q.error} />
   const rows = q.data.rows
@@ -52,7 +52,7 @@ export function ComparisonPanel({ entryId, enabled }: { entryId: string; enabled
 export function ReopenModal({ entryId, open, onClose, onDone }: { entryId: string; open: boolean; onClose: () => void; onDone: () => void }) {
   const [reason, setReason] = useState('')
   const m = useMutation({
-    mutationFn: async () => unwrap(await supabase.rpc('reopen_payroll_entry' as never, { p_payroll_entry_id: entryId, p_reason: reason } as never)),
+    mutationFn: async () => unwrap(await dataApi.rpc('reopen_payroll_entry' as never, { p_payroll_entry_id: entryId, p_reason: reason } as never)),
     onSuccess: () => { setReason(''); onDone() },
   })
   return (
@@ -69,7 +69,7 @@ type Line = { code?: string; label?: string; section?: string; gain?: number; de
 
 /** Fichier de synthèse du journal de paie : totaux par rubrique (CSV, séparateur « ; »). */
 export async function downloadPayrollSummary(entryId: string, period: string) {
-  const rows = unwrap(await supabase.from('salary_slips').select('calculation').eq('payroll_entry_id', entryId).neq('status', 'Annulé')) as unknown as { calculation: { lines?: Line[] } | null }[]
+  const rows = unwrap(await dataApi.from('salary_slips').select('calculation').eq('payroll_entry_id', entryId).neq('status', 'Annulé')) as unknown as { calculation: { lines?: Line[] } | null }[]
   const agg = new Map<string, { section: string; code: string; label: string; n: number; gain: number; ded: number; emp: number }>()
   for (const r of rows) {
     for (const l of r.calculation?.lines ?? []) {

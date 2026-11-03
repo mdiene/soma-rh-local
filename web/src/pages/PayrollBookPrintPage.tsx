@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Printer } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useCompany } from '../lib/queries'
 import { date, fcfa } from '../lib/format'
 import { Button, ErrorNote, Spinner } from '../components/ui'
@@ -50,11 +50,11 @@ export default function PayrollBookPrintPage() {
   const company = useCompany()
   const entry = useQuery({
     queryKey: ['payroll_entry', id],
-    queryFn: async () => unwrap(await supabase.from('payroll_entries').select('*').eq('id', id!).single()),
+    queryFn: async () => unwrap(await dataApi.from('payroll_entries').select('*').eq('id', id!).single()),
   })
   const slips = useQuery({
     queryKey: ['book-slips', id],
-    queryFn: async () => unwrap(await supabase.from('salary_slips')
+    queryFn: async () => unwrap(await dataApi.from('salary_slips')
       .select('id, employee_number, gross_pay, total_employee_deductions, employer_charges, net_pay, payroll_cost, leave_provision, precarity_provision, calculation, employee:employees(gender, first_name, last_name)')
       .eq('payroll_entry_id', id!).neq('status', 'Annulé').order('employee_number')) as unknown as Slip[],
   })

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Printer } from 'lucide-react'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useCompany, useDesignations } from '../lib/queries'
 import { date, fcfa, monthLabel } from '../lib/format'
 import { Button, Modal, Spinner } from './ui'
@@ -28,12 +28,12 @@ function AttestationDocument({ employeeId, kind }: { employeeId: string; kind: A
   const designations = useDesignations()
   const emp = useQuery({
     queryKey: ['attestation-emp', employeeId],
-    queryFn: async () => unwrap(await supabase.from('employees').select('*').eq('id', employeeId).single()),
+    queryFn: async () => unwrap(await dataApi.from('employees').select('*').eq('id', employeeId).single()),
   })
   const slip = useQuery({
     queryKey: ['attestation-slip', employeeId],
     enabled: kind === 'attestation_salaire',
-    queryFn: async () => unwrap(await supabase.from('salary_slips').select('period_start, gross_pay, net_pay').eq('employee_id', employeeId).eq('status', 'Validé').order('period_start', { ascending: false }).limit(1)),
+    queryFn: async () => unwrap(await dataApi.from('salary_slips').select('period_start, gross_pay, net_pay').eq('employee_id', employeeId).eq('status', 'Validé').order('period_start', { ascending: false }).limit(1)),
   })
   if (emp.isLoading || company.isLoading) return <div className="p-6"><Spinner /></div>
   const e = emp.data

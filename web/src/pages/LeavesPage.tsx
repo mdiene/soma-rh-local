@@ -3,7 +3,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import { Check, Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import clsx from 'clsx'
-import { supabase, unwrap, type Views } from '../lib/supabase'
+import { dataApi, unwrap, type Views } from '../lib/api'
 import { LeaveDetailModal, type LeaveApp } from '../components/LeaveDetailModal'
 import { useAuth } from '../lib/auth'
 import { useEmployees, useLeaveTypes } from '../lib/queries'
@@ -25,19 +25,19 @@ export default function LeavesPage() {
 
   const apps = useQuery({
     queryKey: ['leave_applications'],
-    queryFn: async () => unwrap(await supabase.from('leave_applications')
+    queryFn: async () => unwrap(await dataApi.from('leave_applications')
       .select('*, employee:employees(employee_number, first_name, last_name, designation:designations(name)), type:leave_types(name)')
       .order('from_date', { ascending: false })) as App[],
   })
   const balances = useQuery({
     queryKey: ['leave_balances'],
     enabled: tab === 'soldes',
-    queryFn: async () => unwrap(await supabase.from('v_leave_balances').select('*').order('employee_number')),
+    queryFn: async () => unwrap(await dataApi.from('v_leave_balances').select('*').order('employee_number')),
   })
 
   const decide = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: 'Approuvée' | 'Rejetée' }) =>
-      unwrap(await supabase.from('leave_applications').update({ status, approver_id: session!.user.id, approved_at: new Date().toISOString() }).eq('id', id).select()),
+      unwrap(await dataApi.from('leave_applications').update({ status, approver_id: session!.user.id, approved_at: new Date().toISOString() }).eq('id', id).select()),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['leave_applications'] }); qc.invalidateQueries({ queryKey: ['leave_balances'] }) },
   })
 
@@ -101,10 +101,10 @@ function RequestModal({ open, onClose }: { open: boolean; onClose: () => void })
   const qc = useQueryClient()
   const employees = useEmployees()
   const types = useLeaveTypes()
-  const me = useQuery({ queryKey: ['my_employee_id'], queryFn: async () => unwrap(await supabase.rpc('my_employee_id')) })
+  const me = useQuery({ queryKey: ['my_employee_id'], queryFn: async () => unwrap(await dataApi.rpc('my_employee_id')) })
   const [f, setF] = useState({ employee_id: '', leave_type: 'CONGE_ANNUEL', from_date: '', to_date: '', reason: '' })
   const save = useMutation({
-    mutationFn: async () => unwrap(await supabase.from('leave_applications').insert({ ...f, employee_id: f.employee_id || (me.data as string) }).select()),
+    mutationFn: async () => unwrap(await dataApi.from('leave_applications').insert({ ...f, employee_id: f.employee_id || (me.data as string) }).select()),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['leave_applications'] }); onClose() },
   })
   return (
@@ -138,7 +138,7 @@ function AllocationModal({ open, onClose }: { open: boolean; onClose: () => void
   const save = useMutation({
     mutationFn: async () => {
       const targets = f.employee_id === 'ALL' ? (employees.data ?? []).filter((e) => e.status === 'Active').map((e) => e.id) : [f.employee_id]
-      return unwrap(await supabase.from('leave_allocations').insert(targets.map((id) => ({ employee_id: id, leave_type: f.leave_type, from_date: f.from_date, to_date: f.to_date, days: f.days }))).select())
+      return unwrap(await dataApi.from('leave_allocations').insert(targets.map((id) => ({ employee_id: id, leave_type: f.leave_type, from_date: f.from_date, to_date: f.to_date, days: f.days }))).select())
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['leave_balances'] }); onClose() },
   })

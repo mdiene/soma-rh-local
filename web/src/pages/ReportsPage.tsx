@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { useEffect, useMemo, useState } from 'react'
-import { supabase, unwrap, type Views } from '../lib/supabase'
+import { dataApi, unwrap, type Views } from '../lib/api'
 import { useCompany, usePayrollEntries } from '../lib/queries'
 import { date, fcfa, monthLabel } from '../lib/format'
 import { GroupedTable, type Check, type GBlock, type GCol } from '../components/GroupedTable'
@@ -153,15 +153,15 @@ export default function ReportsPage() {
 
   const reg = useQuery({
     queryKey: ['register', entryId], enabled: !!entryId,
-    queryFn: async () => unwrap(await supabase.from('v_payroll_register').select('*').eq('payroll_entry_id', entryId).order('employee_number')),
+    queryFn: async () => unwrap(await dataApi.from('v_payroll_register').select('*').eq('payroll_entry_id', entryId).order('employee_number')),
   })
   const contrib = useQuery({
     queryKey: ['contrib', entryId], enabled: !!entryId,
-    queryFn: async () => unwrap(await supabase.from('v_contribution_summary').select('*').eq('payroll_entry_id', entryId).order('sort_order')),
+    queryFn: async () => unwrap(await dataApi.from('v_contribution_summary').select('*').eq('payroll_entry_id', entryId).order('sort_order')),
   })
   const journal = useQuery({
     queryKey: ['journal', entryId], enabled: !!entryId && tab === 'compta',
-    queryFn: async () => unwrap(await supabase.from('v_accounting_journal').select('*').eq('payroll_entry_id', entryId).order('journal').order('line_no')),
+    queryFn: async () => unwrap(await dataApi.from('v_accounting_journal').select('*').eq('payroll_entry_id', entryId).order('journal').order('line_no')),
   })
   const suffix = entry ? entry.period_start.slice(0, 7) : ''
 

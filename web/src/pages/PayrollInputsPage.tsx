@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Save, Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useComponents, useEmployees } from '../lib/queries'
 import { currentPeriod, monthLabel } from '../lib/format'
@@ -32,8 +32,8 @@ function prevPeriod(p: string) {
 
 async function loadPeriod(period: string) {
   const [inputs, adds] = await Promise.all([
-    supabase.from('payroll_inputs').select('*').eq('period', period),
-    supabase.from('additional_salaries').select('*').eq('period', period),
+    dataApi.from('payroll_inputs').select('*').eq('period', period),
+    dataApi.from('additional_salaries').select('*').eq('period', period),
   ])
   return { inputs: unwrap(inputs), adds: unwrap(adds) }
 }
@@ -55,7 +55,7 @@ export default function PayrollInputsPage() {
     queryKey: ['attendance_totals', period],
     queryFn: async () => {
       const end = new Date(Date.UTC(Number(period.slice(0, 4)), Number(period.slice(5, 7)), 0)).toISOString().slice(0, 10)
-      const list = unwrap(await supabase.from('attendance')
+      const list = unwrap(await dataApi.from('attendance')
         .select('employee_id,status,absence_hours,sick_hours,overtime_15,overtime_40,overtime_60,overtime_100')
         .gte('attendance_date', period).lte('attendance_date', end).limit(5000))
       const byEmp: Record<string, Partial<Record<InputKey, number>>> = {}
@@ -116,12 +116,12 @@ export default function PayrollInputsPage() {
         employee_id: id, period, ...rows[id].inputs,
         attendance_override: INPUT_COLS.some((c) => differsFromAtt(id, c.key)),
       }))
-      if (inputRows.length) unwrap(await supabase.from('payroll_inputs').upsert(inputRows, { onConflict: 'employee_id,period' }).select('id'))
+      if (inputRows.length) unwrap(await dataApi.from('payroll_inputs').upsert(inputRows, { onConflict: 'employee_id,period' }).select('id'))
       const upserts = ids.flatMap((id) => Object.entries(rows[id].adds).filter(([, v]) => v > 0).map(([code, amount]) => ({ employee_id: id, period, component_code: code, amount })))
-      if (upserts.length) unwrap(await supabase.from('additional_salaries').upsert(upserts, { onConflict: 'employee_id,period,component_code' }).select('id'))
+      if (upserts.length) unwrap(await dataApi.from('additional_salaries').upsert(upserts, { onConflict: 'employee_id,period,component_code' }).select('id'))
       for (const id of ids) {
         const zeros = Object.entries(rows[id].adds).filter(([, v]) => !v).map(([c]) => c)
-        if (zeros.length) unwrap(await supabase.from('additional_salaries').delete().eq('employee_id', id).eq('period', period).in('component_code', zeros).select('id'))
+        if (zeros.length) unwrap(await dataApi.from('additional_salaries').delete().eq('employee_id', id).eq('period', period).in('component_code', zeros).select('id'))
       }
       return ids.length
     },

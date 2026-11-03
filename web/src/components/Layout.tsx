@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import {
   BarChart3, CalendarCheck2, CalendarDays, Calculator, FileSpreadsheet, LayoutDashboard, LogOut, Menu,
-  CalendarClock, History, PieChart, Inbox, UserCircle, LockKeyhole, Settings, SlidersHorizontal, Users, Wallet,
+  CalendarClock, History, PieChart, Inbox, UserCircle, LockKeyhole, Settings, SlidersHorizontal, Users, Wallet, FileText,
 } from 'lucide-react'
 import { Suspense, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -15,11 +15,14 @@ const GROUPS: { title: string; items: Item[] }[] = [
     { to: '/pilotage', label: 'Pilotage RH', icon: PieChart, roles: ['rh', 'paie'] },
     { to: '/mon-espace', label: 'Mon espace', icon: UserCircle, roles: ['salarie', 'rh', 'paie'] },
     { to: '/demandes', label: 'Demandes des salariés', icon: Inbox, roles: ['rh'] },
+    { to: '/equipes', label: 'Équipes et managers', icon: Users, roles: ['rh'] },
+    { to: '/mon-equipe', label: 'Mon équipe', icon: Users, roles: ['manager'] },
   ] },
   {
     title: 'Personnel',
     items: [
       { to: '/salaries', label: 'Salariés', icon: Users, roles: ['rh', 'paie'] },
+      { to: '/dossiers-salaries', label: 'Dossiers administratifs', icon: FileText, roles: ['rh'] },
       { to: '/conges', label: 'Congés', icon: CalendarDays },
       { to: '/planning', label: 'Planning des postes', icon: CalendarClock, roles: ['rh', 'paie'] },
       { to: '/presences', label: 'Présences', icon: CalendarCheck2, roles: ['rh', 'paie'] },

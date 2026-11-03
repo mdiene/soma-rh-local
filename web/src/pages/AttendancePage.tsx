@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { ArrowRightLeft, CheckCircle2, ChevronLeft, ChevronRight, Save, Search, UserCheck, UserX } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { supabase, unwrap, type Tables } from '../lib/supabase'
+import { dataApi, unwrap, type Tables } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useEmployees } from '../lib/queries'
 import { date as fmtDate, monthBounds, monthLabel, num } from '../lib/format'
@@ -81,11 +81,11 @@ export default function AttendancePage() {
 
   const departments = useQuery({
     queryKey: ['departments'],
-    queryFn: async () => unwrap(await supabase.from('departments').select('id, name').order('name')),
+    queryFn: async () => unwrap(await dataApi.from('departments').select('id, name').order('name')),
   })
   const records = useQuery({
     queryKey: ['attendance-day', day],
-    queryFn: async () => unwrap(await supabase.from('attendance').select('*').eq('attendance_date', day)),
+    queryFn: async () => unwrap(await dataApi.from('attendance').select('*').eq('attendance_date', day)),
   })
   const byEmp = useMemo(() => new Map((records.data ?? []).map((a) => [a.employee_id, a])), [records.data])
 
@@ -168,7 +168,7 @@ export default function AttendancePage() {
           notes: d.notes.trim() || null,
         }
       })
-      return unwrap(await supabase.from('attendance').upsert(payload, { onConflict: 'employee_id,attendance_date' }).select('*'))
+      return unwrap(await dataApi.from('attendance').upsert(payload, { onConflict: 'employee_id,attendance_date' }).select('*'))
     },
     onSuccess: (data) => {
       // les lignes enregistrées deviennent la référence tout de suite (puis rechargement de contrôle)
@@ -364,12 +364,12 @@ function MonthSummary({ period }: { period: string }) {
   const { start, end } = monthBounds(period)
   const q = useQuery({
     queryKey: ['attendance-month', period],
-    queryFn: async () => unwrap(await supabase.from('attendance')
+    queryFn: async () => unwrap(await dataApi.from('attendance')
       .select('employee_id, status, absence_hours, sick_hours, overtime_15, overtime_40, overtime_60, overtime_100, employee:employees(employee_number, first_name, last_name)')
       .gte('attendance_date', start).lte('attendance_date', end)),
   })
   const sync = useMutation({
-    mutationFn: async () => unwrap(await supabase.rpc('sync_attendance_to_payroll_inputs', { p_period: period })),
+    mutationFn: async () => unwrap(await dataApi.rpc('sync_attendance_to_payroll_inputs', { p_period: period })),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['payroll_inputs'] }),
   })
   const summary = useMemo(() => {

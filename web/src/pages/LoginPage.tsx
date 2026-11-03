@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { dataApi } from '../lib/api'
 import { Button, ErrorNote, TextField } from '../components/ui'
 
 export default function LoginPage() {
@@ -15,10 +15,10 @@ export default function LoginPage() {
     setBusy(true); setError(null); setInfo(null)
     try {
       if (mode === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        const { error } = await dataApi.auth.signInWithPassword({ email, password })
         if (error) throw error
       } else {
-        const { data, error } = await supabase.auth.signUp({ email, password })
+        const { data, error } = await dataApi.auth.signUp({ email, password })
         if (error) throw error
         if (!data.session) setInfo('Compte créé. Confirmez votre adresse à partir du courriel reçu, puis connectez-vous.')
       }

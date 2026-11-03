@@ -1,6 +1,6 @@
 # SOMA-RH — Analyse, benchmark et feuille de route
 
-> **Version 2.0 — 30 octobre 2026 — à valider**
+> **Version 2.1 — 2 novembre 2026 — proposition mise à jour**
 > Document de travail structuré à partir du canevas joint (v1.0), de l'application telle qu'elle existe aujourd'hui (code, base de données, déploiement) et d'une comparaison avec Frappe HR, OrangeHRM, Odoo (module Paie Sénégal), Sage et les obligations légales sénégalaises.
 
 ---
@@ -534,7 +534,13 @@ En tant que <rôle>, je veux <action>, afin de <résultat>.
 | Ticket | Description | Taille |
 |---|---|---|
 | DOC-001 | Stockage privé + URL temporaires + journal des accès | L |
-| DOC-002 | Coffre documentaire par salarié (types, durées de conservation) | L |
+| DOC-002 | Catalogue `document_requirements` et coffre documentaire par salarié | L |
+| DOC-002A | UX « Mon Dossier Administratif » : 5 sections, cartes, progression, recherche, états et responsive mobile | L |
+| DOC-002B | Dépôt fichier/caméra, prévisualisation, remplacement, limites MIME/taille et contrôle antivirus | L |
+| DOC-002C | Workflow RH : soumettre, valider, refuser avec motif, versionner et notifier | L |
+| DOC-002D | Vue RH/admin d'une fiche salarié, opérations assistées et contrôle du périmètre manager | M |
+| DOC-002E | Génération PDF de checklist/dossier complet avec index et empreinte | L |
+| DOC-002F | Rétention, expiration, purge contrôlée et export du journal d'accès | M |
 | DOC-003 | Expirations et alertes (CNI, contrat, visite médicale, habilitation) | M |
 | DOC-004 | Modèles de documents avec variables (attestations, contrats, certificat de travail) | L |
 | CAR-001 | Historique de carrière `employee_events` (mutation, promotion, augmentation) lié aux structures salariales | L |
@@ -546,6 +552,16 @@ En tant que <rôle>, je veux <action>, afin de <résultat>.
 | CAR-007 | Import contrôlé de salariés (prévisualisation, rapport d'erreurs) | M |
 
 **Critère de sortie** : le dossier complet d'un salarié se constitue de l'embauche à la sortie ; porte C franchie.
+
+**Séquence recommandée avant le développement :**
+
+1. valider le catalogue des 18 exigences et les règles conditionnelles ;
+2. valider les documents obligatoires, les durées de validité et les rôles
+   autorisés par type de pièce ;
+3. livrer le modèle SQL/RLS et les tests négatifs salarié A/B, RH et manager ;
+4. livrer l'UX salarié mobile-first avec fixtures anonymisées ;
+5. livrer la revue RH et le PDF complet ;
+6. tester le parcours réel sur téléphone et clôturer la porte C.
 
 #### Lot 5 — Temps avancé, exploitation minière, frais (8 semaines, P1)
 

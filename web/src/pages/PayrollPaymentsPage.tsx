@@ -1,16 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ApiClient } from '../lib/api'
 import { ArrowLeft, CheckCircle2, Download, Printer } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useCompany } from '../lib/queries'
 import { date, fcfa, monthLabel } from '../lib/format'
 import { Badge, Button, ErrorNote, Modal, PageHeader, Spinner, TextField } from '../components/ui'
 import { PrintPortal, printPortal } from '../components/PrintPortal'
 
-const db = supabase as unknown as SupabaseClient
+const db = dataApi as unknown as ApiClient
 type Slip = { id: string; employee_id: string; employee_number: string; employee_name: string; payment_mode: string | null; net_pay: number; employee: { phone_personal: string | null; phone_work: string | null } | null }
 type Pay = { slip_id: string; payment_mode: string; status: 'À payer' | 'Payé'; paid_at: string | null; reference: string | null }
 
@@ -30,11 +30,11 @@ export default function PayrollPaymentsPage() {
 
   const entry = useQuery({
     queryKey: ['payroll_entry', id],
-    queryFn: async () => unwrap(await supabase.from('payroll_entries').select('*').eq('id', id!).single()),
+    queryFn: async () => unwrap(await dataApi.from('payroll_entries').select('*').eq('id', id!).single()),
   })
   const slips = useQuery({
     queryKey: ['pay_slips', id],
-    queryFn: async () => unwrap(await supabase.from('salary_slips')
+    queryFn: async () => unwrap(await dataApi.from('salary_slips')
       .select('id, employee_id, employee_number, employee_name, payment_mode, net_pay, employee:employees(phone_personal, phone_work)')
       .eq('payroll_entry_id', id!).eq('status', 'Validé').order('employee_number')) as unknown as Slip[],
   })

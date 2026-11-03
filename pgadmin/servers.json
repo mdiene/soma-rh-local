@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "SOMA-RH local",
+      "Group": "SOMA-RH",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "soma_rh",
+      "Username": "soma",
+      "SSLMode": "prefer",
+      "Comment": "PostgreSQL local du projet SOMA-RH"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { supabase, unwrap } from '../lib/supabase'
+import { dataApi, unwrap } from '../lib/api'
 import { fcfa, MONTHS, MONTHS_SHORT } from '../lib/format'
 import { ErrorNote, Spinner } from './ui'
 
@@ -20,7 +20,7 @@ type YearData = {
 function useYearDashboard(year: number) {
   return useQuery({
     queryKey: ['dashboard-year', year],
-    queryFn: async () => unwrap(await supabase.rpc('hr_dashboard_year', { p_year: year })) as unknown as YearData,
+    queryFn: async () => unwrap(await dataApi.rpc('hr_dashboard_year', { p_year: year })) as unknown as YearData,
     placeholderData: (prev) => prev, // garde l'affichage précédent pendant le changement d'année
   })
 }
