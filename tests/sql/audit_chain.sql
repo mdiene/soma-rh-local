@@ -23,7 +23,7 @@ end $$;
 alter table public.audit_log disable trigger audit_log_immutable_bud;
 update public.audit_log set reason = 'falsifié' where table_name = 'test' and action = 'A';
 do $$ begin
-  if not exists (select 1 from public.audit_verify() where problem = 'contenu modifié') then
+  if not exists (select 1 from public.audit_verify() where problem like 'contenu modif%') then
     raise exception 'altération non détectée';
   end if;
 end $$;

@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import {
-  BarChart3, CalendarCheck2, CalendarDays, Calculator, FileSpreadsheet, LayoutDashboard, LogOut, Menu,
+  Banknote, BarChart3, CalendarCheck2, CalendarDays, Calculator, FileSpreadsheet, LayoutDashboard, LogOut, Menu,
   CalendarClock, History, PieChart, Inbox, UserCircle, LockKeyhole, Settings, SlidersHorizontal, Users, Wallet, FileText,
 } from 'lucide-react'
 import { Suspense, useState } from 'react'
@@ -32,6 +32,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: 'Paie',
     items: [
       { to: '/paie/variables', label: 'Variables du mois', icon: SlidersHorizontal, roles: ['paie', 'rh'] },
+      { to: '/paie/ajustements', label: 'Prêts et régularisations', icon: Banknote, roles: ['paie', 'rh'] },
       { to: '/paie', label: 'Traitements de paie', icon: Wallet, roles: ['paie', 'rh'] },
       { to: '/paie/gouvernance', label: 'Contrôle et clôture', icon: LockKeyhole, roles: ['paie', 'rh'] },
       { to: '/paie/simulateur', label: 'Simulateur net / brut', icon: Calculator, roles: ['paie', 'rh'] },

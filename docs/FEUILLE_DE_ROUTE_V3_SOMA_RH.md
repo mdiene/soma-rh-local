@@ -76,6 +76,8 @@ Convention d'estimation : jours-personne, fourchette (basse = rien d'inattendu ;
 
 ### L2 — Salaire additionnel unifié, régularisation, prêts et acomptes (12-20 j)
 
+> **Avancement (3/11/2026)** : fait — migration `20261103130000_l2_ajustements_paie.sql`. `compute_salary_slip` est inchangé ; `apply_period_adjustments` dépose avant chaque calcul les lignes dérivées dans `additional_salaries` (colonnes `kind`, `source_id`), de façon idempotente et sans bruit d'audit : éléments récurrents (`recurring_pay_items`), échéances de prêt (`loans`, `loan_installments`, rubrique `RET_PRET`) et régularisations après clôture (`payroll_corrections`, rubriques `REGUL_BRUT` / `RET_REGUL`). Une saisie manuelle prime sur une ligne dérivée. Écran « Prêts et régularisations » (`/paie/ajustements`). Test de propriété `tests/sql/l2_adjustments.sql` (T-I6, T-I7, T-I19, T-I20). L2-04 : aucun acompte à migrer (0 ligne `RET_AVANCE_*`, 1 demande d'acompte encore « Ouverte ») ; un prêt peut référencer une demande (`request_id`). Non fait : « remplacement de structure » par un élément récurrent ; un retard de retenue (mois annulé ou ignoré) est reporté en bloc sur la période suivante ; pas de plafond de retenue par rapport au net.
+
 | | |
 |---|---|
 | **Objectif** | Un seul chemin vers le bulletin (I6, I7). |
