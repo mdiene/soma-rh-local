@@ -5,6 +5,7 @@ import { dataApi, unwrap } from '../lib/api'
 import { Badge, Empty, ErrorNote, PageHeader, Spinner } from '../components/ui'
 import { REQUEST_TYPES, type EmployeeRequest } from '../lib/requests'
 import { DelegationPanel, LeaveApprovals } from '../components/LeaveApprovals'
+import { TeamCalendar } from '../components/TeamCalendar'
 
 const db = dataApi as unknown as ApiClient
 type Assignment = {
@@ -54,6 +55,8 @@ export default function ManagerPage() {
       {assignments.isLoading ? <Spinner /> : activeEmployees.length === 0 ? (
         <Empty title="Aucune équipe active">Le service RH ne vous a pas encore affecté de salarié sur la période courante.</Empty>
       ) : (
+        <>
+        <TeamCalendar members={activeEmployees.map((a) => ({ id: a.employee_id, name: `${a.employee?.first_name ?? ''} ${a.employee?.last_name ?? ''}`.trim() }))} />
         <section className="panel mb-6">
           <div className="border-b border-line px-4 py-3"><h2 className="text-base">Salariés affectés</h2></div>
           <ul className="divide-y divide-line/70">
@@ -68,6 +71,7 @@ export default function ManagerPage() {
             ))}
           </ul>
         </section>
+        </>
       )}
 
       <section className="panel">

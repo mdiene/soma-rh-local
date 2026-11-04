@@ -12,6 +12,9 @@ Gravités : S1 argent faux ou fuite de données, S2 majeur, S3 mineur, S4 cosmé
 | D-003 | S2 | RL-010 : SMIG horaire en base 370,526 F, décret 2023-1710 cité vers 433 F. | paramètres | Ouvert, à confirmer (voir le registre légal) | oracle O-RL010 à écrire |
 | D-004 | S2 | RL-005 : un seul taux d'accident du travail (5 %) alors qu'il dépend du risque notifié par la CSS. | paramètres | Ouvert, à confirmer | oracle O-RL005 |
 | D-005 | S4 | `verify-payroll.ps1` comptait les salariés fictifs QA : l'empreinte échouait dès qu'un scénario était chargé. | scripts | **Clos** : les matricules `QA%` sont exclus | `verify-payroll.ps1` : PASS avec 210 salariés QA chargés |
+| D-006 | S1 potentiel | IPRES complémentaire des cadres : le moteur applique 6 % sur **tout le brut** jusqu'à 1 296 000 F ; les sources consultées parlent de la **tranche** entre 432 000 et 1 296 000 F. Pour un cadre à 556 400 F, base 556 400 F contre 124 400 F, soit environ 6 500 F de cotisation salariale par mois d'écart. | paie | Ouvert, **décision du propriétaire** après avis de l'IPRES ou du comptable | `tests/oracle/differential.test.mjs` : 3 tests marqués « à faire » (todo) |
+| D-007 | S2 | Base imposable de l'IR abaissée de 1 000 F à tort quand le montant exact tombe sur un millier rond : le brut du moteur porte un bruit numérique (609 000 moins 4e-16). Environ 12 % des salariés CDI et CDD, IR sous-estimé de 19 à 25 F par mois. | paie | **Clos** le 2026-11-04 par la migration `20261104140000_ir_arrondi_base` | `tests/sql/ir_arrondi.sql` : échoue sans la migration, passe avec ; oracle = moteur sur 939 salariés |
+| D-008 | S3 | Aucune cotisation ni IR pour les stagiaires, apprentis et prestataires dans le moteur ; le registre légal ne dit rien de ces statuts (règle RL-019). | paie | Ouvert, à confirmer avec le comptable | oracle limité aux CDI et CDD en attendant |
 
 ## Constat hors périmètre
 

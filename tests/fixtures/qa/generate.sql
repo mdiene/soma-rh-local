@@ -100,6 +100,12 @@ select e.id, (select id from public.salary_structures limit 1), date '2020-01-01
   case g.i % 3 when 0 then 'Prime de transport' when 1 then 'Indemnité kilométrique' else 'Aucun' end
 from qa_gen g join public.employees e on e.employee_number = 'QA' || lpad(g.i::text, 4, '0');
 
+-- Cadres : salaires >= 600 000 F, rattachés à un grade « Cadres » (convention COMMERCE) pour l'IPRES complémentaire.
+update public.employees e set agreement_code = 'COMMERCE',
+  grade_id = (select id from public.employee_grades where agreement_code = 'COMMERCE' and staff_status = 'Cadres' order by code limit 1)
+from public.salary_structure_assignments a
+where a.employee_id = e.id and e.employee_number like 'QA%' and a.base_salary >= 600000;
+
 commit;
 
 select :'scenario' as scenario, count(*) as salaries_qa,

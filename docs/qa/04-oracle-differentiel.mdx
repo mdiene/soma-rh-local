@@ -1,0 +1,39 @@
+---
+title: "04 — Oracle de paie et test différentiel"
+description: "Réimplémentation indépendante des règles légales et comparaison avec le moteur SQL sur des centaines de salariés."
+---
+
+## Objectif
+
+Vérifier le moteur `compute_salary_slip` contre une seconde implémentation écrite à partir du registre légal, pas du code SQL.
+
+## Méthode
+
+- Oracle : `tests/oracle/payroll-oracle.mjs` (cotisations IPRES, CSS, CFCE, IR, TRIMF).
+- Test : `tests/oracle/differential.test.mjs`. Il calcule chaque salarié actif avec le moteur, reprend le brut de ce bulletin, calcule les mêmes montants avec l'oracle et compare à 0,001 F.
+- Paramètres : lus dans les tables de données datées à la date de fin de période.
+- Population : CDI et CDD (le moteur ne calcule ni cotisation ni IR pour les autres statuts, voir D-008).
+- Propriétés vérifiées sur l'oracle : l'IR ne diminue jamais quand le brut augmente, pour 1 à 5 parts ; les bases IPRES et CSS respectent les plafonds.
+
+<Warning>
+Indépendance partielle : l'auteur avait lu la fonction `compute_income_tax` avant d'écrire la partie IR de l'oracle. Les cotisations ont été écrites depuis le registre seul.
+</Warning>
+
+## Résultats
+
+| Jeu | Période | Salariés comparés | Champs identiques | Écarts |
+|---|---|---|---|---|
+| `eti-200` | octobre 2026 | 209 | 9 sur 12 champs | IPRES complémentaire (D-006) |
+| `grande-1000` | février, octobre, décembre 2026 | 939 par période | 9 sur 12 champs | IPRES complémentaire (D-006) |
+
+- Concordance totale sur : bases et cotisations IPRES générales, CSS (allocations familiales et accidents du travail), CFCE, IR, TRIMF.
+- **D-007 trouvé et corrigé** : l'oracle a révélé que le moteur sous-estimait l'IR de 19 à 25 F par mois pour 12 % des salariés à cause d'un arrondi sur un bruit numérique.
+- **D-006 ouvert** : l'IPRES complémentaire des cadres. Le moteur l'applique à tout le brut jusqu'à 1 296 000 F, le registre parle de la tranche au-delà de 432 000 F. Les trois tests concernés sont marqués « à faire » en attendant la décision du propriétaire.
+
+## Bascule de paramètres datés (T-I14)
+
+`tests/sql/settings_dated.sql` : un taux d'allocations familiales porté de 7 % à 8 % au 1er décembre 2026 laisse novembre inchangé (4 410 F) et donne 5 040 F en décembre. Réussi.
+
+## Ce que cela change pour les utilisateurs
+
+L'impôt sur le revenu de certains salariés augmente de quelques dizaines de francs par mois à partir de la prochaine paie : c'est la correction d'une sous-estimation. Les cotisations sociales de l'IPRES générale, de la CSS et de la CFCE sont confirmées cohérentes avec le registre. L'assiette de l'IPRES complémentaire des cadres reste à valider.

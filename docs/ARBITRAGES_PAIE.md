@@ -61,3 +61,12 @@
 
 - Avec les trois paramètres à la valeur « Excel », le calcul d'août 2026 pour les 26 salariés actifs est **identique** à celui d'avant la modification (comparaison poste par poste, y compris brut 5 017 834,60 F et net 4 765 432,33 F au 30/10/2026).
 - Le classeur de référence (25 bulletins, brut 4 929 179,09 F) ne peut plus être rejoué : la base actuelle compte 26 salariés actifs et aucun bulletin enregistré.
+
+## Fiche 9 — Arrondi de la base imposable de l'IR (campagne QA, 4 novembre 2026)
+
+- **Ancien comportement** : `compute_income_tax` tronquait au millier le montant `brut annuel − abattement`. Le brut calculé porte un bruit numérique (par exemple 609 000 − 4×10⁻¹⁶), donc un montant exact de 6 408 000 F devenait 6 407 999,99… puis 6 407 000 F.
+- **Problème** : l'IR de 12 % des salariés CDI et CDD était sous-estimé de 19 à 25 F par mois. Le texte (CGI) arrondit le montant exact, pas son bruit de calcul.
+- **Décision** : arrondir à 6 décimales avant la troncature (`trunc(round(x, 6), -3)`). Migration `20261104140000_ir_arrondi_base`, retour arrière dans `db/rollback/`.
+- **Effet** : aucun sur les 26 bulletins d'août 2026 des salariés d'origine (`verify-payroll.ps1` : PASS sans `-Save`). Sur 939 salariés de test CDI et CDD, l'oracle et le moteur concordent à 0,001 F.
+- **Cause racine non traitée** : le bruit vient de la division par le taux horaire (173,33 contre 173,3333…). Il ne touche que l'IR par effet de seuil ; une correction du calcul horaire demanderait une validation comptable.
+- **Test** : `tests/sql/ir_arrondi.sql`.
