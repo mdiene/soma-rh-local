@@ -6,20 +6,29 @@ export type OrgStatus = 'actif' | 'en_conge' | 'interim'
 export type OrgNode = {
   id: string; matricule: string; prenom: string; nom: string; poste: string; departement: string | null
   email: string | null; statut: OrgStatus; sortie: string | null; subordonnes: number; equipes: number
+  poste_id: string | null; unite: string | null; responsable_de: string[]
 }
 export type LinkType = 'direct' | 'dotted' | 'interim' | 'functional'
 export type OrgLink = { id: string; type: LinkType; source: string; target: string; debut: string; fin: string | null; quote_part?: number | null; note?: string | null }
 export type OrgTeam = { id: string; nom: string; type: string; responsable: string | null; debut: string; fin: string | null; membres: { employe: string; role: string; quote_part: number }[] }
 export type OrgAnomaly = { code: string; employe: string; message: string }
-export type OrgData = { date: string; noeuds: OrgNode[]; liens: OrgLink[]; equipes: OrgTeam[]; anomalies: OrgAnomaly[] }
+export type UnitKind = 'direction' | 'secteur' | 'section' | 'service'
+export type OrgUnit = { id: string; nom: string; type: UnitKind; parent: string | null; responsable: string | null; membres: number }
+export type OrgPost = { id: string; nom: string }
+export type OrgData = { date: string; noeuds: OrgNode[]; liens: OrgLink[]; equipes: OrgTeam[]; anomalies: OrgAnomaly[]; unites: OrgUnit[]; postes: OrgPost[] }
+export const UNIT_LABEL: Record<UnitKind, string> = { direction: 'Direction', secteur: 'Secteur', section: 'Section', service: 'Service' }
+export const unitNodeId = (id: string) => 'u:' + id
+export const isUnitNode = (id: string) => id.startsWith('u:')
+/** Un salarié est « Manager » dès qu'il a des subordonnés directs ou qu'il dirige une unité ou une équipe (aucun compte requis). */
+export const isManager = (p: OrgNode) => p.subordonnes > 0 || p.responsable_de.length > 0
 
 export const ROOT_ID = 'soma-root'
 export const GROUP_ID = 'soma-unattached'
 export const CARD_W = 236
 export const CARD_H = 88
 
-export type ViewKind = 'person' | 'root' | 'group'
-export type ViewNode = { id: string; kind: ViewKind; person?: OrgNode; label?: string; parent: string | null; children: string[] }
+export type ViewKind = 'person' | 'root' | 'group' | 'unit'
+export type ViewNode = { id: string; kind: ViewKind; person?: OrgNode; unit?: OrgUnit; label?: string; sub?: string; parent: string | null; children: string[] }
 
 export const STATUS_LABEL: Record<OrgStatus, string> = { actif: 'Actif', en_conge: 'En congé', interim: 'Intérim' }
 export const LINK_LABEL: Record<Exclude<LinkType, 'direct'>, string> = { dotted: 'Rattachement pointillé', interim: 'Intérim', functional: 'Responsable fonctionnel' }
@@ -34,7 +43,7 @@ export function buildTree(data: OrgData): { nodes: Map<string, ViewNode>; unatta
   const hasChildren = new Set(parent.values())
   const nodes = new Map<string, ViewNode>()
   nodes.set(ROOT_ID, { id: ROOT_ID, kind: 'root', label: 'SOMA', parent: null, children: [] })
-  nodes.set(GROUP_ID, { id: GROUP_ID, kind: 'group', label: 'Non rattachés', parent: ROOT_ID, children: [] })
+  nodes.set(GROUP_ID, { id: GROUP_ID, kind: 'group', label: 'Non rattachés', sub: 'salarié(s) sans manager direct', parent: ROOT_ID, children: [] })
   const unattached: string[] = []
   for (const p of data.noeuds) nodes.set(p.id, { id: p.id, kind: 'person', person: p, parent: null, children: [] })
   for (const p of data.noeuds) {
@@ -96,3 +105,39 @@ export function chainOf(nodes: Map<string, ViewNode>, id: string): Set<string> {
 }
 
 export const fmtDate = (d: string | null) => (d ? new Date(d + 'T00:00:00').toLocaleDateString('fr-FR') : '')
+
+/** Vue « Directions » : société > directions > secteurs > sections ; chaque salarié sous son unité (le responsable en premier). */
+export function buildStructureTree(data: OrgData): { nodes: Map<string, ViewNode>; unattached: string[] } {
+  const nodes = new Map<string, ViewNode>()
+  nodes.set(ROOT_ID, { id: ROOT_ID, kind: 'root', label: 'SOMA', parent: null, children: [] })
+  nodes.set(GROUP_ID, { id: GROUP_ID, kind: 'group', label: 'Sans direction', sub: 'salarié(s) non rattachés à une unité', parent: ROOT_ID, children: [] })
+  const unitIds = new Set(data.unites.map((u) => u.id))
+  for (const u of data.unites) {
+    const parent = u.parent && unitIds.has(u.parent) ? unitNodeId(u.parent) : ROOT_ID
+    nodes.set(unitNodeId(u.id), { id: unitNodeId(u.id), kind: 'unit', unit: u, label: u.nom, parent, children: [] })
+  }
+  for (const u of data.unites) nodes.get(nodes.get(unitNodeId(u.id))!.parent!)!.children.push(unitNodeId(u.id))
+  const headOf = new Map(data.unites.map((u) => [u.id, u.responsable]))
+  const unattached: string[] = []
+  const persons = [...data.noeuds].sort((a, b) => Number(headOf.get(b.unite ?? '') === b.id) - Number(headOf.get(a.unite ?? '') === a.id))
+  for (const p of persons) {
+    const parent = p.unite && unitIds.has(p.unite) ? unitNodeId(p.unite) : GROUP_ID
+    if (parent === GROUP_ID) unattached.push(p.id)
+    nodes.set(p.id, { id: p.id, kind: 'person', person: p, parent, children: [] })
+    nodes.get(parent)!.children.push(p.id)
+  }
+  if (!unattached.length) { nodes.delete(GROUP_ID); nodes.get(ROOT_ID)!.children = nodes.get(ROOT_ID)!.children.filter((c) => c !== GROUP_ID) } else nodes.get(ROOT_ID)!.children.push(GROUP_ID)
+  return { nodes, unattached }
+}
+
+/** Ce que chaque salarié a déjà (manager, équipes, unité) : sert à colorer les listes de choix. */
+export type Assignment = { manager: string | null; teams: string[]; unit: string | null }
+export function assignmentInfo(data: OrgData): Map<string, Assignment> {
+  const byId = new Map(data.noeuds.map((n) => [n.id, n]))
+  const unitName = new Map(data.unites.map((u) => [u.id, u.nom]))
+  const out = new Map<string, Assignment>()
+  for (const n of data.noeuds) out.set(n.id, { manager: null, teams: [], unit: n.unite ? unitName.get(n.unite) ?? null : null })
+  for (const l of data.liens) if (l.type === 'direct' && out.has(l.target) && byId.has(l.source)) out.get(l.target)!.manager = fullName(byId.get(l.source)!)
+  for (const t of data.equipes) for (const m of t.membres) out.get(m.employe)?.teams.push(t.nom)
+  return out
+}

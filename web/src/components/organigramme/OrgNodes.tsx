@@ -1,12 +1,12 @@
 import { memo } from 'react'
 import { BaseEdge, EdgeLabelRenderer, Handle, Position, getBezierPath, getSmoothStepPath, type EdgeProps, type Node, type NodeProps } from '@xyflow/react'
-import { Building2, CheckCircle2, ChevronDown, ChevronRight, Plane, Repeat, Users } from 'lucide-react'
-import { STATUS_LABEL, fullName, initials } from '../../lib/org'
+import { Building2, CheckCircle2, ChevronDown, ChevronRight, Cog, Landmark, Layers, LayoutGrid, Plane, Plus, Repeat, UserCog, Users } from 'lucide-react'
+import { STATUS_LABEL, UNIT_LABEL, fullName, initials, isManager, type UnitKind } from '../../lib/org'
 import { useOrg, type CardData, type EdgeData } from './orgContext'
 
 /** Cartes de l'organigramme (salarié, société, groupe « non rattachés ») et arêtes (direct, pointillé, intérim, fonctionnel). */
 
-type CardNode = Node<CardData, 'person' | 'root' | 'group'>
+type CardNode = Node<CardData, 'person' | 'root' | 'group' | 'unit'>
 
 const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h }
 
@@ -20,6 +20,16 @@ function Handles() {
       <Handle id="r-s" type="source" position={Position.Right} className="org-handle org-handle-side" />
       <Handle id="r-t" type="target" position={Position.Right} className="org-handle org-handle-side" />
     </>
+  )
+}
+
+function PlusButton({ id, label }: { id: string; label: string }) {
+  const o = useOrg()
+  return (
+    <button type="button" className="org-plus nodrag nopan" aria-haspopup="menu" aria-label={label}
+      onClick={(e) => { e.stopPropagation(); o.onMenu(id, e.currentTarget.getBoundingClientRect()) }}>
+      <Plus className="h-3.5 w-3.5" aria-hidden />
+    </button>
   )
 }
 
@@ -56,9 +66,11 @@ export const PersonNode = memo(function PersonNode({ data, id }: NodeProps<CardN
         <p className="org-role truncate">{p.poste}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1">
           <span className="org-chip" data-tone={p.statut}><Icon className="h-3 w-3" aria-hidden />{STATUS_LABEL[p.statut]}</span>
+          {isManager(p) && <span className="org-chip" data-tone="manager" title={p.responsable_de.length ? `Responsable de : ${p.responsable_de.join(', ')}` : 'Manager direct'}><UserCog className="h-3 w-3" aria-hidden />Manager</span>}
           {p.equipes > 0 && <span className="org-chip" data-tone="team"><Users className="h-3 w-3" aria-hidden />{p.equipes}</span>}
         </div>
       </div>
+      <PlusButton id={id} label={`Actions pour ${fullName(p)}`} />
       <Toggle id={id} count={data.view.children.length} />
     </div>
   )
@@ -72,6 +84,7 @@ export const RootNode = memo(function RootNode({ data, id }: NodeProps<CardNode>
       <Handles />
       <span className="org-avatar org-avatar-root" aria-hidden><Building2 className="h-5 w-5" /></span>
       <div className="min-w-0 flex-1"><p className="org-name">{data.view.label}</p><p className="org-role">Société Minière Africaine</p></div>
+      <PlusButton id={id} label="Créer une direction, un poste ou une équipe" />
       <Toggle id={id} count={data.view.children.length} />
     </div>
   )
@@ -80,10 +93,10 @@ export const RootNode = memo(function RootNode({ data, id }: NodeProps<CardNode>
 export const GroupNode = memo(function GroupNode({ data, id }: NodeProps<CardNode>) {
   const o = useOrg()
   return (
-    <div className="org-card org-group-card" data-dim={o.matches ? 'true' : 'false'} role="group" aria-label={`${data.view.label}, ${data.view.children.length} salariés sans manager direct`} tabIndex={0} onKeyDown={(e) => o.onKey(id, e)}>
+    <div className="org-card org-group-card" data-dim={o.matches ? 'true' : 'false'} role="group" aria-label={`${data.view.label}, ${data.view.children.length} salariés`} tabIndex={0} onKeyDown={(e) => o.onKey(id, e)}>
       <Handles />
       <span className="org-avatar org-avatar-group" aria-hidden><Users className="h-5 w-5" /></span>
-      <div className="min-w-0 flex-1"><p className="org-name">{data.view.label}</p><p className="org-role">{data.view.children.length} salarié(s) sans manager direct</p></div>
+      <div className="min-w-0 flex-1"><p className="org-name">{data.view.label}</p><p className="org-role">{data.view.children.length} {data.view.sub ?? 'salarié(s)'}</p></div>
       <Toggle id={id} count={data.view.children.length} />
     </div>
   )
@@ -106,5 +119,29 @@ export const OrgEdge = memo(function OrgEdge(props: EdgeProps) {
         </EdgeLabelRenderer>
       )}
     </>
+  )
+})
+
+const UNIT_ICON: Record<UnitKind, typeof Landmark> = { direction: Landmark, secteur: Layers, section: LayoutGrid, service: Cog }
+
+/** Direction, secteur, section ou service : porte les salariés qui y sont rattachés. */
+export const UnitNode = memo(function UnitNode({ data, id }: NodeProps<CardNode>) {
+  const o = useOrg()
+  const u = data.view.unit!
+  const Icon = UNIT_ICON[u.type]
+  const dim = (o.chain && !o.chain.has(id)) || o.matches
+  return (
+    <div className="org-card org-unit-card" data-unit={u.type} data-selected={o.selectedId === id} data-dim={dim ? 'true' : 'false'}
+      role="button" tabIndex={0} aria-label={`${UNIT_LABEL[u.type]} ${u.nom}, ${u.membres} salarié(s)`} aria-pressed={o.selectedId === id}
+      onClick={() => o.onSelect(id)} onMouseEnter={() => o.onHover(id)} onMouseLeave={() => o.onHover(null)} onKeyDown={(e) => o.onKey(id, e)}>
+      <Handles />
+      <span className="org-avatar org-avatar-unit" data-unit={u.type} aria-hidden><Icon className="h-5 w-5" /></span>
+      <div className="min-w-0 flex-1">
+        <p className="org-name truncate">{u.nom}</p>
+        <p className="org-role truncate">{UNIT_LABEL[u.type]} · {u.membres} salarié(s)</p>
+      </div>
+      <PlusButton id={id} label={`Actions pour ${u.nom}`} />
+      <Toggle id={id} count={data.view.children.length} />
+    </div>
   )
 })

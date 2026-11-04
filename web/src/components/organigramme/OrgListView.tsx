@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
-import { GROUP_ID, ROOT_ID, STATUS_LABEL, fullName, type OrgData, type ViewNode } from '../../lib/org'
+import { GROUP_ID, ROOT_ID, STATUS_LABEL, UNIT_LABEL, fullName, type OrgData, type ViewNode } from '../../lib/org'
 
 /** Vue « liste hiérarchique » : alternative accessible au graphique (arbre dépliable, lisible à l'écran-lecteur). */
 
@@ -14,7 +14,8 @@ export function OrgListView({ tree, data, matches, onSelect }: { tree: Map<strin
     const label = v.kind === 'person' ? fullName(v.person!) : v.label!
     const detail = v.kind === 'person'
       ? `${v.person!.poste} · ${STATUS_LABEL[v.person!.statut]}${v.person!.departement ? ` · ${v.person!.departement}` : ''}`
-      : v.kind === 'group' ? `${kids.length} salarié(s) sans manager direct` : 'Société Minière Africaine'
+      : v.kind === 'group' ? `${kids.length} ${v.sub ?? 'salarié(s)'}`
+      : v.kind === 'unit' ? `${UNIT_LABEL[v.unit!.type]} · ${v.unit!.membres} salarié(s)` : 'Société Minière Africaine'
     const dim = matches && v.kind === 'person' && !matches.has(id)
     const row = (
       <span className={`flex flex-wrap items-center gap-x-3 gap-y-0.5 ${dim ? 'opacity-40' : ''}`}>

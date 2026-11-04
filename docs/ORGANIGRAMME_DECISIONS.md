@@ -69,6 +69,21 @@ Défauts trouvés puis corrigés pendant cette vérification : icône de recherc
 - Pas de nœud d'équipe dans le graphe : la vue « Équipes » regroupe les membres à part, sans toucher à la hiérarchie.
 - Pas de test automatisé d'interface (Playwright, axe) : aucun outil de ce type n'est installé dans le projet.
 
-## 8. Données de démonstration
+## 8. Structure de l'entreprise et saisie directe (4/11/2026, migration `20261104100000_organigramme_structure.sql`)
+
+Demande du propriétaire : saisir directement dans l'organigramme, créer directions, secteurs, sections et postes, rattacher même les salariés sans compte.
+
+- **Directions, secteurs, sections, services** : la table `departments` (vide jusque-là, avec `parent_id` et nom unique par société) est **réutilisée** comme structure ; ajout de `kind`, `head_employee_id` (responsable) et `note`. Pas de cycle (trigger). Un salarié est rattaché par `employees.department_id`, **sans compte utilisateur requis**.
+- **Postes** : `designations` (23 existants) ; création et affectation depuis l'organigramme (`org_save_post`, `org_set_employee_post`).
+- **« Manager » sans compte** : un salarié s'affiche « Manager » dès qu'il a des subordonnés directs **ou** qu'il est responsable d'une unité ou d'une équipe (`isManager`). Le rôle applicatif `manager` n'est accordé que s'il a un compte (comportement existant).
+- **Deux vues** du graphe : « Managers » (qui rapporte à qui + liens pointillé, intérim, fonctionnel) et « Directions » (société › direction › secteur › section, chaque salarié sous son unité, responsable en premier).
+- **Bouton « + » sur chaque carte** : menu d'actions (rattacher un salarié, ajouter à une équipe, affecter à une direction, changer de poste, changer ou détacher de manager, ajouter un lien, ouvrir la fiche ; pour une unité : rattacher, sous-unité, modifier, supprimer). Bouton « Créer » (direction, secteur, section, service, poste, équipe) dans l'en-tête et sur la carte « SOMA ». **Un clic sur n'importe quel élément ouvre la fiche**, avec les actions de rattachement et de détachement.
+- **Listes de choix colorées** : un salarié déjà affecté (manager, équipe, unité) est en **orange avec un texte explicite** (« déjà sous X », « équipe : Y », « déjà dans Z »), un salarié libre en vert. La couleur n'est jamais seule.
+- **Règle du motif — changement par rapport au prompt initial** : le motif est désormais **facultatif** (« information complémentaire ») pour tous les rattachements, équipes, unités, postes et liens. Il reste **obligatoire (5 caractères)** pour **remplacer ou retirer un manager direct existant** (traçabilité de la hiérarchie). Un premier rattachement n'exige rien. Les actions sont toujours journalisées, avec ou sans motif. *À confirmer : si vous voulez aussi le motif facultatif pour un changement de manager, c'est une condition dans `org_set_manager`.*
+- Supprimer une unité détache ses salariés (ils ne sont pas supprimés) ; une unité qui contient des sous-unités ne peut pas être supprimée.
+
+**Non vérifié à l'écran pour cette évolution** : l'outil de pilotage du navigateur n'était plus connecté. Vérifié : typage, build, lint (0 erreur), 10 tests unitaires (arbre des directions, règle Manager, affectations), test SQL (unités, cycle, doublon, postes, retrait d'équipe, droits, motif). À regarder par vous : menu « + », fiche d'unité, formulaires, couleurs des listes, vue « Directions ».
+
+## 9. Données de démonstration
 
 `tests/fixtures/organigramme/demo_seed.sql` (10 salariés fictifs, statut `Suspended` donc jamais dans un calcul de paie, 3 liens hors hiérarchie, 2 équipes, 1 congé) ; `demo_cleanup.sql` les retire. Idempotent. Les lignes d'audit créées par la démonstration restent dans le journal (il est immuable).

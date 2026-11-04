@@ -2,7 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, UserPlus, Users } from 'lucide-react'
 import { useState } from 'react'
 import { dataApi, unwrap, type ApiClient } from '../../lib/api'
-import { fmtDate, fullName, initials, type OrgData, type OrgNode, type OrgTeam } from '../../lib/org'
+import { assignmentInfo, fmtDate, fullName, initials, type OrgData, type OrgTeam } from '../../lib/org'
+import { PersonSelect } from './PersonSelect'
 
 /** Vue « par équipe » : équipes transverses, projets et comités, avec responsable et quotes-parts. */
 
@@ -49,21 +50,23 @@ export function TeamsView({ data, canEdit, onSelect }: { data: OrgData; canEdit:
           })}
         </div>
       )}
-      {dialog && <TeamDialog dialog={dialog} people={data.noeuds} onClose={() => setDialog(null)} />}
+      {dialog && <TeamDialog dialog={dialog} data={data} onClose={() => setDialog(null)} />}
     </div>
   )
 }
 
-function TeamDialog({ dialog, people, onClose }: { dialog: Dialog; people: OrgNode[]; onClose: () => void }) {
+function TeamDialog({ dialog, data, onClose }: { dialog: Dialog; data: OrgData; onClose: () => void }) {
+  const people = data.noeuds
+  const info = assignmentInfo(data)
   const qc = useQueryClient()
   const [f, setF] = useState({ name: '', kind: 'project', lead: '', employee: '', role: 'membre', pct: '', start: today(), reason: '' })
   const save = useMutation({
     mutationFn: async () => dialog.kind === 'team'
-      ? unwrap(await db.rpc('org_save_team', { p_id: null, p_name: f.name, p_kind: f.kind, p_lead: f.lead || null, p_start: f.start, p_end: null, p_reason: f.reason }))
-      : unwrap(await db.rpc('org_set_team_member', { p_team: dialog.team.id, p_employee: f.employee, p_role: f.role, p_pct: f.pct === '' ? 0 : Number(f.pct), p_start: f.start, p_end: null, p_reason: f.reason })),
+      ? unwrap(await db.rpc('org_save_team', { p_id: null, p_name: f.name, p_kind: f.kind, p_lead: f.lead || null, p_start: f.start, p_end: null, p_reason: f.reason.trim() || null }))
+      : unwrap(await db.rpc('org_set_team_member', { p_team: dialog.team.id, p_employee: f.employee, p_role: f.role, p_pct: f.pct === '' ? 0 : Number(f.pct), p_start: f.start, p_end: null, p_reason: f.reason.trim() || null })),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['org_chart'] }); onClose() },
   })
-  const invalid = f.reason.trim().length < 5 || (dialog.kind === 'team' ? !f.name.trim() : !f.employee)
+  const invalid = dialog.kind === 'team' ? !f.name.trim() : !f.employee
   const L = ({ t, children }: { t: string; children: React.ReactNode }) => <label className="block text-xs font-semibold" style={{ color: 'var(--o-muted)' }}>{t}<div className="mt-1 font-normal [&>*]:w-full">{children}</div></label>
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4" style={{ background: 'rgba(3, 7, 18, .6)' }} role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -78,7 +81,8 @@ function TeamDialog({ dialog, people, onClose }: { dialog: Dialog; people: OrgNo
             </>
           ) : (
             <>
-              <L t="Salarié"><select className="org-input" value={f.employee} onChange={(e) => setF({ ...f, employee: e.target.value })} autoFocus required><option value="">— choisir —</option>{people.map((p) => <option key={p.id} value={p.id}>{fullName(p)}</option>)}</select></L>
+              <L t="Salarié"><PersonSelect people={people} value={f.employee} onChange={(employee) => setF({ ...f, employee })} autoFocus
+                hint={(p) => { const a = info.get(p.id); return a && (a.teams.length || a.manager) ? [a.manager ? `sous ${a.manager}` : '', a.teams.length ? `équipe : ${a.teams.join(', ')}` : ''].filter(Boolean).join(' · ') : null }} /></L>
               <div className="grid grid-cols-2 gap-3">
                 <L t="Rôle"><input className="org-input" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} /></L>
                 <L t="Quote-part (%)"><input className="org-input" type="number" min={0} max={100} value={f.pct} onChange={(e) => setF({ ...f, pct: e.target.value })} /></L>
@@ -86,7 +90,7 @@ function TeamDialog({ dialog, people, onClose }: { dialog: Dialog; people: OrgNo
             </>
           )}
           <L t="Début"><input className="org-input" type="date" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} required /></L>
-          <L t="Motif (obligatoire, 5 caractères minimum)"><input className="org-input" value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} /></L>
+          <L t="Information complémentaire (facultative)"><input className="org-input" value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} placeholder="Vous pouvez laisser ce champ vide" /></L>
           {save.error && <p role="alert" className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: 'var(--o-amber)', color: 'var(--o-amber)' }}>{(save.error as Error).message}</p>}
           <div className="flex justify-end gap-2"><button type="button" className="org-btn" onClick={onClose}>Annuler</button><button type="submit" className="org-btn" data-primary="true" disabled={invalid || save.isPending}>Enregistrer</button></div>
         </form>

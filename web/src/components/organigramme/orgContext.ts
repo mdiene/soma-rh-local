@@ -12,6 +12,7 @@ export type OrgCtx = {
   onSelect: (id: string) => void
   onHover: (id: string | null) => void
   onKey: (id: string, e: KeyboardEvent) => void
+  onMenu: (id: string, anchor: DOMRect) => void   // menu « + » d'une carte (rattacher, détacher, équipe, direction…)
 }
 export const OrgContext = createContext<OrgCtx | null>(null)
 export const useOrg = () => useContext(OrgContext)!
