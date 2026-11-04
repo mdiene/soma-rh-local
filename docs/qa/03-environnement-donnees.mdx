@@ -1,0 +1,39 @@
+---
+title: "03 — Environnement et usine de données"
+description: "Environnement local vérifié et générateur déterministe de jeux de test fictifs."
+---
+
+## Objectif
+
+Disposer de jeux de données fictifs, rejouables et sans risque pour les données d'origine.
+
+## Environnement vérifié
+
+| Contrôle | Résultat |
+|---|---|
+| Dépôt Git | `https://github.com/mdiene/soma-rh-local`, branche `main` |
+| Base | PostgreSQL du conteneur Docker `soma-rh-local-postgres-1`, base `soma_rh` |
+| API et application | `VITE_API_URL=http://localhost:8000` ; aucune référence Supabase |
+| Sauvegarde préalable | `backups/soma-rh-20261104-120225.dump`, lisible |
+
+## Usine de données
+
+- Fichiers : `tests/fixtures/qa/generate.sql`, `tests/fixtures/qa/reset.sql`, `scripts/qa-reset-scenario.ps1`.
+- Principe : tout dérive de `hashtext` avec une graine fixe, sans `random()`. Les salariés portent les matricules `QA0001` et suivants et sont tous fictifs.
+- Le nettoyage ne supprime que les matricules `QA%` ; les salariés d'origine ne sont jamais touchés.
+- Cas particuliers intégrés : plafond IPRES exact (`QA0001`) et plafond plus 1 F (`QA0002`), salaire nul (`QA0009`), plafond cadres (`QA0010`), nom très long (`QA0004`), apostrophe (`QA0005`), homonymes (`QA0001` et `QA0006`), embauche en cours de mois (`QA0007`), départ en cours de mois (`QA0008`), CDD arrivant à échéance dans 60 jours, parts d'IR de 1 à 5.
+
+## Résultats
+
+| Test | Résultat |
+|---|---|
+| Chargement `pme-25` (25 salariés, 21 CDI et 4 CDD) | réussi |
+| Déterminisme : deux rechargements, même empreinte `9dfdd2dfbf3ac5c5c392bd7d708e0391` | réussi |
+| Salariés d'origine inchangés après deux rechargements | réussi (37) |
+| Calcul du moteur sur `QA0001` et `QA0002` : base IPRES limitée à 432 000 F | réussi |
+
+## Reste à faire pour clore la phase
+
+- Scénarios `pme-80`, `eti-200`, `grande-1000` : paramètres prévus dans le script, chargement à mesurer.
+- Historique de 12 mois de paie validée, présences, congés, acomptes et rotations.
+- Comptes de test par rôle et installation de Playwright.

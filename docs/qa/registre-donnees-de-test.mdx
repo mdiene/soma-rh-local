@@ -6,3 +6,4 @@ description: "Journal de chaque étape qui modifie ou détruit des données dans
 | Date | Étape | Action | Sauvegarde associée | Restauration |
 |---|---|---|---|---|
 | 2026-11-04 | Phase 0 | Aucune modification de données (lecture et sauvegarde seulement) | `backups/soma-rh-20261104-120225.dump` (1 049 entrées) | `scripts/local-restore.ps1` |
+| 2026-11-04 | Phase 3 | Création de 25 salariés fictifs `QA0001` à `QA0025` et de 8 départements `QA …` (scénario `pme-25`), rechargés deux fois pour prouver le déterminisme. Les 37 salariés d'origine ne sont pas modifiés. | `backups/soma-rh-20261104-120225.dump` | `scripts/qa-reset-scenario.ps1 -Scenario pme-25 -ResetOnly` supprime les données QA ; `local-restore.ps1` restaure l'état d'origine |
