@@ -11,24 +11,26 @@ const today = () => new Date().toISOString().slice(0, 10)
 
 export type Dialog =
   | { kind: 'attach'; managerId: string }
-  | { kind: 'manager'; employeeId: string }
+  | { kind: 'manager'; employeeId: string; managerId?: string }
   | { kind: 'detach'; employeeId: string }
-  | { kind: 'relation'; employeeId: string }
+  | { kind: 'relation'; employeeId: string; relatedId?: string }
   | { kind: 'end'; link: OrgLink }
   | { kind: 'unit'; unit?: OrgUnit; parentId?: string | null; unitKind?: UnitKind }
   | { kind: 'unit-delete'; unit: OrgUnit }
   | { kind: 'employee-unit'; employeeId: string }
-  | { kind: 'unit-attach'; unitId: string }
+  | { kind: 'unit-attach'; unitId: string; employeeId?: string }
   | { kind: 'post'; employeeId?: string }
   | { kind: 'team-add'; employeeId: string }
   | { kind: 'team-remove'; teamId: string; employeeId: string }
   | { kind: 'team-new' }
 
-type Env = { data: OrgData; asOf: string; close: () => void }
+export type DoneOpts = { structure?: boolean }
+type Env = { data: OrgData; asOf: string; close: () => void; done: (message: string | null, opts?: DoneOpts) => void }
 
-function useAction(fn: () => Promise<unknown>, close: () => void) {
+/** Exécute l'action puis ferme la fenêtre et affiche un message de confirmation (le résultat peut le fournir : notification de rattachement). */
+function useAction(fn: () => Promise<unknown>, env: Env, msg?: (result: unknown) => string | null, opts?: DoneOpts) {
   const qc = useQueryClient()
-  return useMutation({ mutationFn: fn, onSuccess: () => { void qc.invalidateQueries({ queryKey: ['org_chart'] }); close() } })
+  return useMutation({ mutationFn: fn, onSuccess: (result) => { void qc.invalidateQueries({ queryKey: ['org_chart'] }); void qc.invalidateQueries({ queryKey: ['manager_assignments_admin'] }); env.done(msg ? msg(result) : null, opts) } })
 }
 
 function L({ t, hint, children }: { t: string; hint?: string; children: ReactNode }) {
@@ -41,7 +43,7 @@ function L({ t, hint, children }: { t: string; hint?: string; children: ReactNod
   )
 }
 
-/** Motif : obligatoire seulement quand on remplace ou retire un manager direct ; sinon information complémentaire facultative. */
+/** Information complémentaire : toujours facultative (les actions sont journalisées avec ou sans elle). */
 function Note({ value, onChange, required }: { value: string; onChange: (v: string) => void; required?: boolean }) {
   return (
     <L t={required ? 'Motif (obligatoire, 5 caractères minimum)' : 'Information complémentaire (facultative)'}>
@@ -93,12 +95,12 @@ function ManagerBase({ env, employeeId, managerId, mode }: { env: Env; employeeI
   const [note, setNote] = useState('')
   const target = person(data, mode === 'attach' ? managerId! : employeeId)
   const subject = mode === 'attach' ? emp : employeeId
-  const replacing = mode === 'detach' || !!(subject && info.get(subject)?.manager)
-  const save = useAction(async () => unwrap(await db.rpc('org_set_manager', { p_employee: subject, p_manager: mode === 'detach' ? null : mode === 'attach' ? managerId : mgr || null, p_from: from, p_reason: note.trim() || null })), close)
+  const save = useAction(async () => unwrap(await db.rpc('org_set_manager', { p_employee: subject, p_manager: mode === 'detach' ? null : mode === 'attach' ? managerId : mgr || null, p_from: from, p_reason: note.trim() || null })), env,
+    () => (mode === 'detach' ? `${target ? fullName(target) : 'Le salarié'} est détaché(e) de son manager.` : 'Rattachement au manager enregistré.'))
   const title = mode === 'attach' ? `Rattacher un salarié sous ${target ? fullName(target) : ''}` : mode === 'detach' ? 'Détacher de son manager' : 'Changer de manager direct'
-  const ok = !!from && (mode === 'attach' ? !!emp : true) && (!replacing || note.trim().length >= 5)
+  const ok = !!from && (mode === 'attach' ? !!emp : mode === 'change' ? !!mgr : true)
   return (
-    <Shell title={title} subtitle={mode === 'attach' ? 'Le salarié n’a pas besoin d’un compte pour être rattaché.' : target ? `${fullName(target)} · ${target.poste}` : undefined} close={close}
+    <Shell title={title} subtitle={mode === 'attach' ? 'Le salarié n’a pas besoin d’un compte pour être rattaché.' : target ? [fullName(target), target.poste].filter(Boolean).join(' · ') : undefined} close={close}
       onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit={ok} label={mode === 'detach' ? 'Détacher' : 'Enregistrer'} danger={mode === 'detach'}>
       {mode === 'attach' && (
         <L t="Salarié à rattacher">
@@ -108,27 +110,27 @@ function ManagerBase({ env, employeeId, managerId, mode }: { env: Env; employeeI
       )}
       {mode === 'change' && (
         <L t="Nouveau manager direct" hint="Le rattachement actuel est clos la veille de la date d'effet.">
-          <PersonSelect people={data.noeuds} value={mgr} onChange={setMgr} exclude={new Set([employeeId])} emptyLabel="Aucun manager (tête de branche)" required={false} autoFocus
+          <PersonSelect people={data.noeuds} value={mgr} onChange={setMgr} exclude={new Set([employeeId])} emptyLabel="Choisir un manager…" required={false} autoFocus
             hint={(p) => (p.subordonnes > 0 ? `gère ${p.subordonnes} personne(s)` : null)} />
         </L>
       )}
       {mode === 'detach' && <p className="text-sm">Le salarié ne sera plus rattaché à un manager direct à partir de la date d’effet. Son historique est conservé.</p>}
       <L t="Date d'effet"><input className="org-input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} required /></L>
-      <Note value={note} onChange={setNote} required={replacing} />
+      <Note value={note} onChange={setNote} />
     </Shell>
   )
 }
 
 // ------------------------------------------------------------ lien hors hiérarchie
-function RelationForm({ env, employeeId }: { env: Env; employeeId: string }) {
+function RelationForm({ env, employeeId, relatedId }: { env: Env; employeeId: string; relatedId?: string }) {
   const { data, close } = env
-  const [f, setF] = useState({ related: '', type: 'dotted' as Exclude<LinkType, 'direct'>, start: today(), end: '', pct: '', note: '' })
+  const [f, setF] = useState({ related: relatedId ?? '', type: 'dotted' as Exclude<LinkType, 'direct'>, start: today(), end: '', pct: '', note: '' })
   const subject = person(data, employeeId)
   const save = useAction(async () => unwrap(await db.rpc('org_save_relation', {
     p_id: null, p_employee: employeeId, p_related: f.related, p_type: f.type, p_start: f.start, p_end: f.end || null,
-    p_pct: f.type === 'dotted' && f.pct !== '' ? Number(f.pct) : null, p_note: null, p_reason: f.note.trim() || null })), close)
+    p_pct: f.type === 'dotted' && f.pct !== '' ? Number(f.pct) : null, p_note: null, p_reason: f.note.trim() || null })), env, () => 'Lien hors hiérarchie ajouté.')
   return (
-    <Shell title="Ajouter un lien hors hiérarchie" subtitle={subject ? `${fullName(subject)} · ${subject.poste}` : undefined} close={close}
+    <Shell title="Ajouter un lien hors hiérarchie" subtitle={subject ? [fullName(subject), subject.poste].filter(Boolean).join(' · ') : undefined} close={close}
       onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit={!!f.related && !!f.start}>
       <L t="Type de lien">
         <select className="org-input" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as typeof f.type })} autoFocus>
@@ -153,7 +155,7 @@ function EndForm({ env, link }: { env: Env; link: OrgLink }) {
   const [stop, setStop] = useState(today())
   const [note, setNote] = useState('')
   const subject = person(data, link.target)
-  const save = useAction(async () => unwrap(await db.rpc('org_end_relation', { p_id: link.id, p_end: stop, p_reason: note.trim() || null })), close)
+  const save = useAction(async () => unwrap(await db.rpc('org_end_relation', { p_id: link.id, p_end: stop, p_reason: note.trim() || null })), env, () => 'Lien terminé.')
   return (
     <Shell title="Terminer un lien" subtitle={subject ? `${fullName(subject)} · ${LINK_LABEL[link.type as keyof typeof LINK_LABEL] ?? ''}` : undefined} close={close}
       onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit={!!stop} label="Terminer le lien" danger>
@@ -169,7 +171,8 @@ function UnitForm({ env, unit, parentId, unitKind }: { env: Env; unit?: OrgUnit;
   const parent = data.unites.find((u) => u.id === (unit?.parent ?? parentId))
   const [f, setF] = useState({ name: unit?.nom ?? '', kind: unit?.type ?? unitKind ?? (parent ? nextKind(parent.type) : 'direction'), parent: unit?.parent ?? parentId ?? '', head: unit?.responsable ?? '', note: '' })
   const heads = useMemo(() => new Map(data.unites.filter((u) => u.responsable && u.id !== unit?.id).map((u) => [u.responsable!, u.nom])), [data, unit])
-  const save = useAction(async () => unwrap(await db.rpc('org_save_unit', { p_id: unit?.id ?? null, p_name: f.name, p_kind: f.kind, p_parent: f.parent || null, p_head: f.head || null, p_note: f.note.trim() || null })), close)
+  const save = useAction(async () => unwrap(await db.rpc('org_save_unit', { p_id: unit?.id ?? null, p_name: f.name, p_kind: f.kind, p_parent: f.parent || null, p_head: f.head || null, p_note: f.note.trim() || null })), env,
+    () => `${UNIT_LABEL[f.kind]} « ${f.name.trim()} » enregistré(e) : visible dans la vue « Directions ».`, { structure: true })
   const options = [...data.unites].filter((u) => u.id !== unit?.id).sort((a, b) => unitPath(data.unites, a.id).localeCompare(unitPath(data.unites, b.id), 'fr'))
   return (
     <Shell title={unit ? `Modifier ${unit.nom}` : `Créer ${f.kind === 'direction' ? 'une direction' : f.kind === 'secteur' ? 'un secteur' : f.kind === 'section' ? 'une section' : 'un service'}`}
@@ -189,7 +192,7 @@ function UnitForm({ env, unit, parentId, unitKind }: { env: Env; unit?: OrgUnit;
 
 function UnitDeleteForm({ env, unit }: { env: Env; unit: OrgUnit }) {
   const { close } = env
-  const save = useAction(async () => unwrap(await db.rpc('org_delete_unit', { p_id: unit.id })), close)
+  const save = useAction(async () => unwrap(await db.rpc('org_delete_unit', { p_id: unit.id })), env, () => `${unit.nom} supprimé(e).`)
   return (
     <Shell title={`Supprimer ${unit.nom}`} close={close} onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit label="Supprimer" danger>
       <p className="text-sm">{unit.membres > 0 ? `${unit.membres} salarié(s) seront détachés de cette unité (ils ne sont pas supprimés). ` : ''}Une unité qui contient des sous-unités ne peut pas être supprimée.</p>
@@ -197,40 +200,75 @@ function UnitDeleteForm({ env, unit }: { env: Env; unit: OrgUnit }) {
   )
 }
 
+/** Case « rattacher aussi au responsable » : proposée quand l'unité a un responsable différent du manager actuel du salarié. */
+function headChoice(data: OrgData, unitId: string, empId: string) {
+  const unit = data.unites.find((u) => u.id === unitId)
+  const head = unit?.responsable ? person(data, unit.responsable) : undefined
+  const current = empId ? assignmentInfo(data).get(empId)?.manager ?? null : null
+  const can = !!unit && !!head && head.id !== empId && current !== fullName(head)
+  return { unit, head, current, can }
+}
+
+function HeadCheckbox({ head, unitName, current, checked, onChange }: { head: OrgNode; unitName: string; current: string | null; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-start gap-2 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: 'var(--o-border)' }}>
+      <input type="checkbox" className="mt-1" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>Rattacher aussi à son responsable, <strong>{fullName(head)}</strong> ({unitName}).
+        <span className="mt-0.5 block text-xs" style={{ color: 'var(--o-muted)' }}>{current ? `Son manager actuel (${current}) sera remplacé.` : 'Il n’a pas de manager direct pour l’instant.'} Le salarié est averti du changement s’il a un compte.</span>
+      </span>
+    </label>
+  )
+}
+
+function useUnitAttach(env: Env, empId: string, unitId: string, linkHead: boolean) {
+  return useAction(async () => unwrap(await db.rpc('org_attach_to_unit', { p_employee: empId, p_unit: unitId, p_link_head: linkHead })), env,
+    (r) => (r as { message?: string } | null)?.message ?? 'Rattachement enregistré.', { structure: true })
+}
+
 function EmployeeUnitForm({ env, employeeId }: { env: Env; employeeId: string }) {
-  const { data, close } = env
+  const { data } = env
   const emp = person(data, employeeId)
   const [unit, setUnit] = useState(emp?.unite ?? '')
-  const [note, setNote] = useState('')
-  const save = useAction(async () => unwrap(await db.rpc('org_set_employee_unit', { p_employee: employeeId, p_unit: unit || null, p_note: note.trim() || null })), close)
+  const [choice, setChoice] = useState<boolean | null>(null)
+  const h = headChoice(data, unit, employeeId)
+  const link = h.can && (choice ?? !!h.current)
+  const attach = useUnitAttach(env, employeeId, unit, link)
+  const clear = useAction(async () => unwrap(await db.rpc('org_set_employee_unit', { p_employee: employeeId, p_unit: null, p_note: null })), env, () => 'Salarié détaché de son unité.')
   const options = [...data.unites].sort((a, b) => unitPath(data.unites, a.id).localeCompare(unitPath(data.unites, b.id), 'fr'))
   return (
-    <Shell title="Affecter à une direction ou un secteur" subtitle={emp ? `${fullName(emp)} · ${emp.poste}` : undefined} close={close} onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit>
+    <Shell title="Affecter à une direction ou un secteur" subtitle={emp ? [fullName(emp), emp.poste].filter(Boolean).join(' · ') : undefined} close={env.close}
+      onSubmit={() => (unit ? attach.mutate() : clear.mutate())} pending={attach.isPending || clear.isPending} error={attach.error ?? clear.error} canSubmit>
       <L t="Direction, secteur ou section" hint={options.length ? undefined : 'Aucune unité : créez d’abord une direction depuis le bouton « Créer ».'}>
-        <select className="org-input" value={unit} onChange={(e) => setUnit(e.target.value)} autoFocus>
+        <select className="org-input" value={unit} onChange={(e) => { setUnit(e.target.value); setChoice(null) }} autoFocus>
           <option value="">Aucune (détacher de toute unité)</option>
           {options.map((u) => <option key={u.id} value={u.id}>{unitPath(data.unites, u.id)} ({UNIT_LABEL[u.type]})</option>)}
         </select>
       </L>
-      <Note value={note} onChange={setNote} />
+      {h.can && h.head && h.unit && <HeadCheckbox head={h.head} unitName={h.unit.nom} current={h.current} checked={link} onChange={setChoice} />}
     </Shell>
   )
 }
 
-function UnitAttachForm({ env, unitId }: { env: Env; unitId: string }) {
-  const { data, close } = env
+function UnitAttachForm({ env, unitId, employeeId }: { env: Env; unitId: string; employeeId?: string }) {
+  const { data } = env
   const unit = data.unites.find((u) => u.id === unitId)
   const names = useMemo(() => new Map(data.unites.map((u) => [u.id, u.nom])), [data])
-  const [emp, setEmp] = useState('')
-  const [note, setNote] = useState('')
-  const save = useAction(async () => unwrap(await db.rpc('org_set_employee_unit', { p_employee: emp, p_unit: unitId, p_note: note.trim() || null })), close)
+  const [emp, setEmp] = useState(employeeId ?? '')
+  const [choice, setChoice] = useState<boolean | null>(null)
+  const h = headChoice(data, unitId, emp)
+  const link = h.can && (choice ?? !!h.current)
+  const save = useUnitAttach(env, emp, unitId, link)
+  const fixed = employeeId ? person(data, employeeId) : undefined
   return (
-    <Shell title={`Rattacher un salarié à ${unit?.nom ?? ''}`} subtitle="Le salarié n’a pas besoin d’un compte pour être rattaché." close={close} onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit={!!emp}>
-      <L t="Salarié">
-        <PersonSelect people={data.noeuds} value={emp} onChange={setEmp} exclude={new Set(data.noeuds.filter((p) => p.unite === unitId).map((p) => p.id))} autoFocus
-          hint={(p) => (p.unite ? `déjà dans ${names.get(p.unite) ?? 'une unité'}` : null)} />
-      </L>
-      <Note value={note} onChange={setNote} />
+    <Shell title={`Rattacher ${fixed ? fullName(fixed) : 'un salarié'} à ${unit?.nom ?? ''}`} subtitle="Le salarié n’a pas besoin d’un compte pour être rattaché." close={env.close}
+      onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit={!!emp}>
+      {!fixed && (
+        <L t="Salarié">
+          <PersonSelect people={data.noeuds} value={emp} onChange={(v) => { setEmp(v); setChoice(null) }} exclude={new Set(data.noeuds.filter((p) => p.unite === unitId).map((p) => p.id))} autoFocus
+            hint={(p) => (p.unite ? `déjà dans ${names.get(p.unite) ?? 'une unité'}` : null)} />
+        </L>
+      )}
+      {h.can && h.head && h.unit && <HeadCheckbox head={h.head} unitName={h.unit.nom} current={h.current} checked={link} onChange={setChoice} />}
     </Shell>
   )
 }
@@ -245,9 +283,9 @@ function PostForm({ env, employeeId }: { env: Env; employeeId?: string }) {
     const id = name.trim() ? (unwrap(await db.rpc('org_save_post', { p_name: name })) as unknown as string) : existing
     if (employeeId) return unwrap(await db.rpc('org_set_employee_post', { p_employee: employeeId, p_post: id || null }))
     return id
-  }, close)
+  }, env, () => (employeeId ? 'Poste mis à jour.' : 'Poste créé.'))
   return (
-    <Shell title={employeeId ? 'Changer de poste' : 'Créer un poste'} subtitle={emp ? `${fullName(emp)} · poste actuel : ${emp.poste}` : 'Le poste pourra ensuite être attribué aux salariés.'} close={close}
+    <Shell title={employeeId ? 'Changer de poste' : 'Créer un poste'} subtitle={emp ? `${fullName(emp)}${emp.poste ? ` · poste actuel : ${emp.poste}` : ' · aucun poste attribué'}` : 'Le poste pourra ensuite être attribué aux salariés.'} close={close}
       onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit={!!name.trim() || (!!employeeId && !!existing)}>
       {employeeId && (
         <L t="Poste existant">
@@ -274,9 +312,9 @@ function TeamAddForm({ env, employeeId }: { env: Env; employeeId: string }) {
     const note = f.note.trim() || null
     const tid = f.team === '__new__' ? (unwrap(await db.rpc('org_save_team', { p_id: null, p_name: f.name, p_kind: f.kind, p_lead: null, p_start: f.start, p_end: null, p_reason: note })) as unknown as string) : f.team
     return unwrap(await db.rpc('org_set_team_member', { p_team: tid, p_employee: employeeId, p_role: f.role, p_pct: f.pct === '' ? 0 : Number(f.pct), p_start: f.start, p_end: null, p_reason: note }))
-  }, close)
+  }, env, () => 'Ajouté(e) à l’équipe.')
   return (
-    <Shell title="Ajouter à une équipe" subtitle={emp ? `${fullName(emp)} · ${emp.poste}` : undefined} close={close} onSubmit={() => save.mutate()} pending={save.isPending} error={save.error}
+    <Shell title="Ajouter à une équipe" subtitle={emp ? [fullName(emp), emp.poste].filter(Boolean).join(' · ') : undefined} close={close} onSubmit={() => save.mutate()} pending={save.isPending} error={save.error}
       canSubmit={!!f.team && (f.team !== '__new__' || !!f.name.trim())}>
       <L t="Équipe" hint="Orange : le salarié en est déjà membre.">
         <select className="org-input" value={f.team} onChange={(e) => setF({ ...f, team: e.target.value })} autoFocus required>
@@ -306,7 +344,7 @@ function TeamRemoveForm({ env, teamId, employeeId }: { env: Env; teamId: string;
   const team = data.equipes.find((t) => t.id === teamId)
   const emp = person(data, employeeId)
   const [note, setNote] = useState('')
-  const save = useAction(async () => unwrap(await db.rpc('org_remove_team_member', { p_team: teamId, p_employee: employeeId, p_note: note.trim() || null })), close)
+  const save = useAction(async () => unwrap(await db.rpc('org_remove_team_member', { p_team: teamId, p_employee: employeeId, p_note: note.trim() || null })), env, () => 'Retiré(e) de l’équipe.')
   return (
     <Shell title="Retirer d'une équipe" subtitle={`${emp ? fullName(emp) : ''} · ${team?.nom ?? ''}`} close={close} onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit label="Retirer" danger>
       <p className="text-sm">La participation prend fin aujourd’hui ; l’historique est conservé.</p>
@@ -318,7 +356,7 @@ function TeamRemoveForm({ env, teamId, employeeId }: { env: Env; teamId: string;
 function TeamNewForm({ env }: { env: Env }) {
   const { data, close } = env
   const [f, setF] = useState({ name: '', kind: 'project', lead: '', start: today(), note: '' })
-  const save = useAction(async () => unwrap(await db.rpc('org_save_team', { p_id: null, p_name: f.name, p_kind: f.kind, p_lead: f.lead || null, p_start: f.start, p_end: null, p_reason: f.note.trim() || null })), close)
+  const save = useAction(async () => unwrap(await db.rpc('org_save_team', { p_id: null, p_name: f.name, p_kind: f.kind, p_lead: f.lead || null, p_start: f.start, p_end: null, p_reason: f.note.trim() || null })), env, () => 'Équipe créée.')
   return (
     <Shell title="Créer une équipe" subtitle="Projet, comité ou équipe transverse : elle ne modifie pas la hiérarchie directe." close={close} onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit={!!f.name.trim()}>
       <L t="Nom"><input className="org-input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoFocus required /></L>
@@ -333,18 +371,18 @@ function TeamNewForm({ env }: { env: Env }) {
   )
 }
 
-export function OrgDialogs({ dialog, data, asOf, onClose }: { dialog: Dialog; data: OrgData; asOf: string; onClose: () => void }) {
-  const env: Env = { data, asOf, close: onClose }
+export function OrgDialogs({ dialog, data, asOf, onClose, onDone }: { dialog: Dialog; data: OrgData; asOf: string; onClose: () => void; onDone: (message: string | null, opts?: DoneOpts) => void }) {
+  const env: Env = { data, asOf, close: onClose, done: onDone }
   switch (dialog.kind) {
     case 'attach': return <ManagerBase env={env} employeeId="" managerId={dialog.managerId} mode="attach" />
-    case 'manager': return <ManagerBase env={env} employeeId={dialog.employeeId} mode="change" />
+    case 'manager': return <ManagerBase env={env} employeeId={dialog.employeeId} managerId={dialog.managerId} mode="change" />
     case 'detach': return <ManagerBase env={env} employeeId={dialog.employeeId} mode="detach" />
-    case 'relation': return <RelationForm env={env} employeeId={dialog.employeeId} />
+    case 'relation': return <RelationForm env={env} employeeId={dialog.employeeId} relatedId={dialog.relatedId} />
     case 'end': return <EndForm env={env} link={dialog.link} />
     case 'unit': return <UnitForm env={env} unit={dialog.unit} parentId={dialog.parentId} unitKind={dialog.unitKind} />
     case 'unit-delete': return <UnitDeleteForm env={env} unit={dialog.unit} />
     case 'employee-unit': return <EmployeeUnitForm env={env} employeeId={dialog.employeeId} />
-    case 'unit-attach': return <UnitAttachForm env={env} unitId={dialog.unitId} />
+    case 'unit-attach': return <UnitAttachForm env={env} unitId={dialog.unitId} employeeId={dialog.employeeId} />
     case 'post': return <PostForm env={env} employeeId={dialog.employeeId} />
     case 'team-add': return <TeamAddForm env={env} employeeId={dialog.employeeId} />
     case 'team-remove': return <TeamRemoveForm env={env} teamId={dialog.teamId} employeeId={dialog.employeeId} />

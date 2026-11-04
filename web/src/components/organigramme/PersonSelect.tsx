@@ -19,7 +19,7 @@ export function PersonSelect({ people, value, onChange, hint, exclude, emptyLabe
         <option value="">{emptyLabel}</option>
         {list.map((p) => {
           const h = hint(p)
-          return <option key={p.id} value={p.id} data-assigned={h ? 'true' : 'false'}>{fullName(p)} — {p.poste}{h ? ` · ${h}` : ''}</option>
+          return <option key={p.id} value={p.id} data-assigned={h ? 'true' : 'false'}>{fullName(p)}{p.poste ? ` — ${p.poste}` : ''}{h ? ` · ${h}` : ''}</option>
         })}
       </select>
       <span className="mt-1 block text-[11px] font-normal" style={{ color: 'var(--o-muted)' }}>

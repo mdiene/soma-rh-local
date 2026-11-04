@@ -12,10 +12,12 @@ export type OrgCtx = {
   onSelect: (id: string) => void
   onHover: (id: string | null) => void
   onKey: (id: string, e: KeyboardEvent) => void
+  personName: (id: string | null) => string | null   // nom d'un salarié (responsable d'une unité)
+  canEdit: boolean                  // RH : poignées de liaison visibles
   onMenu: (id: string, anchor: DOMRect) => void   // menu « + » d'une carte (rattacher, détacher, équipe, direction…)
 }
 export const OrgContext = createContext<OrgCtx | null>(null)
 export const useOrg = () => useContext(OrgContext)!
 
 export type CardData = { view: ViewNode; [key: string]: unknown }
-export type EdgeData = { kind: 'tree' | 'dotted' | 'interim' | 'functional'; label?: string; hot?: boolean; dim?: boolean; [key: string]: unknown }
+export type EdgeData = { kind: 'tree' | 'dotted' | 'interim' | 'functional'; source?: string; target?: string; linkId?: string; label?: string; hot?: boolean; dim?: boolean; [key: string]: unknown }

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ApiClient } from '../lib/api'
 import { UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
-import { Badge, Button, ErrorNote, PageHeader, SelectField, Spinner, TextField } from '../components/ui'
+import { Button, ErrorNote, PageHeader, SelectField, Spinner, TextField } from '../components/ui'
 import { date } from '../lib/format'
 import { dataApi, unwrap } from '../lib/api'
 
@@ -18,6 +18,14 @@ type Assignment = {
   employee: Employee | Employee[] | null
 }
 const today = new Date().toISOString().slice(0, 10)
+const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10)
+// état d'une affectation : à venir, actif, ou désaffecté (clôturé / échu)
+const stateOf = (a: { valid_from: string; valid_to: string | null }) => (a.valid_from > today ? 'upcoming' : !a.valid_to || a.valid_to >= today ? 'active' : 'ended')
+const STATE = {
+  upcoming: { label: 'À venir', cls: 'bg-amber-100 text-amber-800' },
+  active: { label: 'Actif', cls: 'bg-emerald-100 text-emerald-800' },
+  ended: { label: 'Désaffecté', cls: 'bg-slate-200 text-slate-700' },
+} as const
 const name = (employee: Employee | Employee[] | null) => {
   const e = Array.isArray(employee) ? employee[0] : employee
   return e ? `${e.first_name} ${e.last_name} (${e.employee_number})` : '—'
@@ -53,15 +61,16 @@ export default function ManagerAssignmentsPage() {
     onSuccess: () => {
       setEmployeeId('')
       qc.invalidateQueries({ queryKey: ['manager_assignments_admin'] })
+      qc.invalidateQueries({ queryKey: ['org_chart'] })
       qc.invalidateQueries({ queryKey: ['manager_assignment_employees'] })
     },
   })
   const close = useMutation({
     mutationFn: async ({ id, end }: { id: string; end: string }) => unwrap(await dataApi.rpc('close_manager_assignment' as never, { p_assignment_id: id, p_valid_to: end } as never)),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['manager_assignments_admin'] }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['manager_assignments_admin'] }); void qc.invalidateQueries({ queryKey: ['org_chart'] }) },
   })
   const activeEmployees = employees.data ?? []
-  const managers = activeEmployees.filter((employee) => employee.user_id)
+  const managers = activeEmployees // un manager n'a pas besoin d'un compte utilisateur
   const canSubmit = !!managerId && !!employeeId && !!validFrom && managerId !== employeeId && (!validTo || validTo >= validFrom)
 
   return (
@@ -92,12 +101,12 @@ export default function ManagerAssignmentsPage() {
         {assignments.isLoading ? <Spinner /> : assignments.error ? <div className="p-4"><ErrorNote error={assignments.error} /></div> : (
           <ul className="divide-y divide-line/70">
             {(assignments.data ?? []).map((assignment) => {
-              const isActive = !assignment.valid_to || assignment.valid_to >= today
+              const state = stateOf(assignment)
               return <li key={assignment.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
                 <div className="min-w-52"><p className="font-medium">{name(assignment.employee)}</p><p className="text-xs text-ink-muted">Manager : {name(assignment.manager)}</p></div>
                 <span className="text-xs text-ink-soft">{date(assignment.valid_from)} → {assignment.valid_to ? date(assignment.valid_to) : 'indéfinie'}</span>
-                <Badge value={isActive ? 'Active' : 'Left'} />
-                {isActive && <Button size="sm" variant="ghost" icon={<X className="h-3.5 w-3.5" />} onClick={() => close.mutate({ id: assignment.id, end: today })}>Clôturer</Button>}
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATE[state].cls}`}>{STATE[state].label}</span>
+                {state !== 'ended' && <Button size="sm" variant="ghost" icon={<X className="h-3.5 w-3.5" />} onClick={() => close.mutate({ id: assignment.id, end: yesterday })}>Clôturer (désaffecter)</Button>}
               </li>
             })}
             {!assignments.data?.length && <li className="px-4 py-6 text-sm text-ink-muted">Aucune affectation enregistrée.</li>}

@@ -87,3 +87,20 @@ Demande du propriétaire : saisir directement dans l'organigramme, créer direct
 ## 9. Données de démonstration
 
 `tests/fixtures/organigramme/demo_seed.sql` (10 salariés fictifs, statut `Suspended` donc jamais dans un calcul de paie, 3 liens hors hiérarchie, 2 équipes, 1 congé) ; `demo_cleanup.sql` les retire. Idempotent. Les lignes d'audit créées par la démonstration restent dans le journal (il est immuable).
+
+## 10. Actions directes, liaison à la souris, notifications (4/11/2026, migration `20261104110000_organigramme_actions.sql`)
+
+Retours du propriétaire après usage, et traitement :
+
+| Retour | Cause trouvée | Correction |
+|---|---|---|
+| Clic sur une carte sans effet, bouton « + » inactif, fiche ouverte en cliquant sur la ligne | Le canevas est configuré sans sélection ni déplacement : React Flow met alors les cartes en `pointer-events: none` | Règle CSS qui rend les cartes cliquables ; clic sur une carte = fiche, clic sur une ligne = menu d'actions |
+| « Détacher de son manager » sans changement | Le motif (5 caractères) restait exigé sans que le bouton l'explique ; un rattachement commencé le jour même bloquait aussi l'opération | **Motif facultatif partout** ; un rattachement du jour est remplacé au lieu de bloquer ; message de confirmation affiché |
+| Direction ou section créée mais invisible | Elles ne figurent que dans la vue « Directions », l'écran restait sur « Managers » | Après création ou rattachement : bascule automatique sur « Directions » + message ; le département s'affiche aussi sous le poste sur les cartes de la vue « Managers » |
+| Salarié déjà sous un manager, rattaché à une direction | Aucun lien automatique avec le responsable de la direction | `org_attach_to_unit` : option « rattacher aussi à son responsable » (cochée par défaut si le salarié a déjà un manager) ; message précisant l'ancien et le nouveau manager ; **notification** au salarié s'il a un compte (`notify_user`) ; journalisé |
+| Clôturer dans « Équipes et managers » | Le badge restait « Active » (fin = aujourd'hui) | Clôturer = fin la veille. États : **À venir / Actif / Désaffecté**. Une affectation qui n'avait pas pris effet est supprimée |
+| Manager sans compte dans « Équipes et managers » | La liste ne proposait que les salariés avec compte | Tout salarié actif peut être manager (le rôle `manager` n'est accordé que s'il a un compte) |
+
+**Liaison à la souris** (RH uniquement) : au survol d'une carte, une pastille en bas à droite (tirer vers un salarié = le rattacher sous cette carte), une en haut (tirer vers un manager ou une direction), et une sur chaque côté (tirer vers un salarié = lien hors hiérarchie). Déposer sur n'importe quel point de la carte visée ouvre la fenêtre correspondante, déjà remplie ; rien n'est enregistré sans validation. Sur écran tactile, les pastilles restent visibles.
+
+**Non vérifié à l'écran** : l'outil de pilotage du navigateur n'est plus connecté. Vérifié : typage, build, lint (aucune nouvelle alerte), 10 tests unitaires, test SQL section 10 (rattachement avec et sans suivi du responsable, détachement du jour, clôture d'une affectation à venir et en cours), non-régression de la paie (PASS). **À essayer par vous** : glisser-déposer des pastilles, menu au clic sur une ligne, messages de notification.

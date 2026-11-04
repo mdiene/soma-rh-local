@@ -26,6 +26,23 @@
         ]
       },
       {
+        "group": "Comparatif",
+        "pages": [
+          "comparatif/etat-des-lieux",
+          "comparatif/matrice-usage",
+          "comparatif/matrice-securite",
+          "comparatif/workflows-cibles",
+          "comparatif/integrations",
+          "comparatif/modules-a-ameliorer",
+          "comparatif/backlog-priorise",
+          "comparatif/fiches-concurrents/frappe-hr",
+          "comparatif/fiches-concurrents/odoo-paie-senegal",
+          "comparatif/fiches-concurrents/payfit-lucca-silae",
+          "comparatif/fiches-concurrents/autres-saas-et-open-source",
+          "comparatif/sources"
+        ]
+      },
+      {
         "group": "Projet et décisions",
         "pages": [
           "ANALYSE_COMPARATIVE_CIBLE_VS_EXISTANT",
@@ -48,7 +65,8 @@
           "PROMPT_RESTRUCTURATION_LOCALE_SOMA_RH",
           "PROMPT_RESTRUCTURATION_LOCALE_SOMA_RH.v1",
           "REGISTRE_RISQUES_DECISIONS_SOMA_RH",
-          "SYNTHESE_CORPUS_DOCS"
+          "SYNTHESE_CORPUS_DOCS",
+          "PROMPT_DEVELOPPEMENT_BENCHMARK_SOMA_RH"
         ]
       }
     ]

@@ -10,15 +10,20 @@ type CardNode = Node<CardData, 'person' | 'root' | 'group' | 'unit'>
 
 const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h }
 
-function Handles() {
+/** Poignées : « t » (haut) et « dn » (bas, à droite) servent à tirer un lien hiérarchique ; les poignées latérales, un lien hors hiérarchie.
+ *  « b », « l-t » et « r-t » ne servent qu'à ancrer les lignes existantes. */
+function Handles({ side = true }: { side?: boolean }) {
+  const { canEdit } = useOrg()
+  const link = (kind: 'hier' | 'side') => `org-handle org-handle-link${canEdit ? '' : ' org-handle-off'}`.concat(kind === 'side' ? ' org-handle-side' : '')
   return (
     <>
-      <Handle id="t" type="target" position={Position.Top} className="org-handle" />
-      <Handle id="b" type="source" position={Position.Bottom} className="org-handle" />
-      <Handle id="l-s" type="source" position={Position.Left} className="org-handle org-handle-side" />
-      <Handle id="l-t" type="target" position={Position.Left} className="org-handle org-handle-side" />
-      <Handle id="r-s" type="source" position={Position.Right} className="org-handle org-handle-side" />
-      <Handle id="r-t" type="target" position={Position.Right} className="org-handle org-handle-side" />
+      <Handle id="t" type="target" position={Position.Top} isConnectable={canEdit} className={link('hier')} title="Tirer vers le haut pour rattacher à un manager ou une direction" />
+      <Handle id="b" type="source" position={Position.Bottom} isConnectable={false} className="org-handle" />
+      <Handle id="dn" type="source" position={Position.Bottom} isConnectable={canEdit} style={{ left: '82%' }} className={link('hier')} title="Tirer vers un salarié pour le rattacher sous cette carte" />
+      {side && <Handle id="l-s" type="source" position={Position.Left} isConnectable={canEdit} className={link('side')} title="Tirer vers un salarié pour créer un lien hors hiérarchie" />}
+      <Handle id="l-t" type="target" position={Position.Left} isConnectable={false} className="org-handle" />
+      {side && <Handle id="r-s" type="source" position={Position.Right} isConnectable={canEdit} className={link('side')} title="Tirer vers un salarié pour créer un lien hors hiérarchie" />}
+      <Handle id="r-t" type="target" position={Position.Right} isConnectable={false} className="org-handle" />
     </>
   )
 }
@@ -53,7 +58,7 @@ export const PersonNode = memo(function PersonNode({ data, id }: NodeProps<CardN
   const p = data.view.person!
   const dim = (o.chain && !o.chain.has(id)) || (o.matches && !o.matches.has(id))
   const Icon = STATUS_ICON[p.statut]
-  const label = `${fullName(p)}, ${p.poste}${p.departement ? `, ${p.departement}` : ''}, ${STATUS_LABEL[p.statut]}, ${p.subordonnes} subordonné${p.subordonnes > 1 ? 's' : ''}`
+  const label = `${fullName(p)}${p.poste ? `, ${p.poste}` : ''}${p.departement ? `, ${p.departement}` : ''}, ${STATUS_LABEL[p.statut]}, ${p.subordonnes} subordonné${p.subordonnes > 1 ? 's' : ''}`
   return (
     <div className="org-card" data-status={p.statut} data-selected={o.selectedId === id} data-dim={dim ? 'true' : 'false'}
       role="button" tabIndex={0} aria-label={label} aria-pressed={o.selectedId === id}
@@ -63,7 +68,7 @@ export const PersonNode = memo(function PersonNode({ data, id }: NodeProps<CardN
       <span className="org-avatar" style={{ background: `linear-gradient(135deg, hsl(${hue(p.id)} 62% 46%), hsl(${(hue(p.id) + 48) % 360} 62% 36%))` }} aria-hidden>{initials(p)}</span>
       <div className="min-w-0 flex-1">
         <p className="org-name truncate">{fullName(p)}</p>
-        <p className="org-role truncate">{p.poste}</p>
+        <p className="org-role truncate">{[p.poste, p.departement].filter(Boolean).join(' · ')}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1">
           <span className="org-chip" data-tone={p.statut}><Icon className="h-3 w-3" aria-hidden />{STATUS_LABEL[p.statut]}</span>
           {isManager(p) && <span className="org-chip" data-tone="manager" title={p.responsable_de.length ? `Responsable de : ${p.responsable_de.join(', ')}` : 'Manager direct'}><UserCog className="h-3 w-3" aria-hidden />Manager</span>}
@@ -139,6 +144,7 @@ export const UnitNode = memo(function UnitNode({ data, id }: NodeProps<CardNode>
       <div className="min-w-0 flex-1">
         <p className="org-name truncate">{u.nom}</p>
         <p className="org-role truncate">{UNIT_LABEL[u.type]} · {u.membres} salarié(s)</p>
+        <p className="org-role truncate" style={{ fontWeight: 600 }}>Responsable : {o.personName(u.responsable) ?? 'non désigné'}</p>
       </div>
       <PlusButton id={id} label={`Actions pour ${u.nom}`} />
       <Toggle id={id} count={data.view.children.length} />

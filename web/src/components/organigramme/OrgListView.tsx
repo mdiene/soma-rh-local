@@ -13,7 +13,7 @@ export function OrgListView({ tree, data, matches, onSelect }: { tree: Map<strin
     const kids = v.children
     const label = v.kind === 'person' ? fullName(v.person!) : v.label!
     const detail = v.kind === 'person'
-      ? `${v.person!.poste} · ${STATUS_LABEL[v.person!.statut]}${v.person!.departement ? ` · ${v.person!.departement}` : ''}`
+      ? [v.person!.poste, STATUS_LABEL[v.person!.statut], v.person!.departement].filter(Boolean).join(' · ')
       : v.kind === 'group' ? `${kids.length} ${v.sub ?? 'salarié(s)'}`
       : v.kind === 'unit' ? `${UNIT_LABEL[v.unit!.type]} · ${v.unit!.membres} salarié(s)` : 'Société Minière Africaine'
     const dim = matches && v.kind === 'person' && !matches.has(id)

@@ -8,7 +8,8 @@ import { GROUP_ID, LINK_LABEL, ROOT_ID, STATUS_LABEL, ancestorsOf, buildStructur
 import { OrgChartCanvas } from '../components/organigramme/OrgChartCanvas'
 import { exportPng } from '../components/organigramme/exportPng'
 import { DetailPanel, UnitPanel } from '../components/organigramme/DetailPanel'
-import { OrgDialogs, type Dialog } from '../components/organigramme/OrgDialogs'
+import { OrgDialogs, type Dialog, type DoneOpts } from '../components/organigramme/OrgDialogs'
+import type { EdgeData } from '../components/organigramme/orgContext'
 import { OrgMenu, type MenuItem } from '../components/organigramme/OrgMenu'
 import { OrgListView } from '../components/organigramme/OrgListView'
 import { TeamsView } from '../components/organigramme/TeamsView'
@@ -46,6 +47,15 @@ export default function OrganigrammePage() {
   const [showAnomalies, setShowAnomalies] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [edgeMenu, setEdgeMenu] = useState<{ items: MenuItem[]; anchor: DOMRect } | null>(null)
+
+  // message de confirmation (ex. notification de rattachement) : disparaît seul
+  useEffect(() => { if (!notice) return; const t = window.setTimeout(() => setNotice(null), 12000); return () => window.clearTimeout(t) }, [notice])
+  const dialogDone = (message: string | null, opts?: DoneOpts) => {
+    setDialog(null)
+    if (message) setNotice(message)
+    if (opts?.structure) { setMode('structure'); setFitSignal((n) => n + 1) }
+  }
 
   const chart = useQuery({
     queryKey: ['org_chart', asOf],
@@ -145,6 +155,54 @@ export default function OrganigrammePage() {
       ...(hasManager ? [sep, { label: 'Détacher de son manager', danger: true, onClick: () => setDialog({ kind: 'detach', employeeId: id }) } as MenuItem] : []),
     ] : [open]
   }
+  const unitOf = (nodeId: string) => data?.unites.find((x) => unitNodeId(x.id) === nodeId)
+
+  /** Liaison tirée à la souris depuis une poignée vers une autre carte : ouvre la fenêtre correspondante, déjà remplie. */
+  const onLink = (from: string, handle: 'dn' | 't' | 'side', to: string) => {
+    if (!canEdit || !data) return
+    const fromU = unitOf(from); const toU = unitOf(to)
+    const fromP = byId.get(from); const toP = byId.get(to)
+    setNotice(null)
+    if (handle === 'side') {
+      if (fromP && toP) setDialog({ kind: 'relation', employeeId: from, relatedId: to })
+      else setNotice('Un lien hors hiérarchie relie deux salariés.')
+      return
+    }
+    // « dn » : on tire depuis le bas de la carte du manager / de l'unité vers le salarié ; « t » : depuis le haut du salarié vers son manager / son unité
+    const head = handle === 'dn' ? { u: fromU, p: fromP, id: from } : { u: toU, p: toP, id: to }
+    const sub = handle === 'dn' ? { p: toP, id: to } : { p: fromP, id: from }
+    if (!sub.p) { setNotice('Déposez le lien sur la carte d’un salarié.'); return }
+    if (head.u) setDialog({ kind: 'unit-attach', unitId: head.u.id, employeeId: sub.id })
+    else if (head.p) setDialog({ kind: 'manager', employeeId: sub.id, managerId: head.id })
+    else setNotice('Choisissez un salarié ou une direction comme point d’attache.')
+  }
+
+  /** Clic sur une ligne : détacher, changer le rattachement, terminer un lien ou ouvrir une fiche. */
+  const onEdge = (e: EdgeData, x: number, y: number) => {
+    if (!data) return
+    const sep: MenuItem = { label: '', onClick: () => undefined, separator: true }
+    const items: MenuItem[] = []
+    const srcP = e.source ? byId.get(e.source) : undefined; const tgtP = e.target ? byId.get(e.target) : undefined
+    const srcU = e.source ? unitOf(e.source) : undefined; const tgtU = e.target ? unitOf(e.target) : undefined
+    if (canEdit) {
+      if (e.kind === 'tree' && tgtP && srcP) {
+        items.push({ label: `Détacher ${fullName(tgtP)} de ${fullName(srcP)}`, danger: true, onClick: () => setDialog({ kind: 'detach', employeeId: tgtP.id }) },
+          { label: `Changer le manager de ${fullName(tgtP)}…`, onClick: () => setDialog({ kind: 'manager', employeeId: tgtP.id }) })
+      } else if (e.kind === 'tree' && tgtP && srcU) {
+        items.push({ label: `Retirer ${fullName(tgtP)} de ${srcU.nom} ou changer d’unité…`, danger: true, onClick: () => setDialog({ kind: 'employee-unit', employeeId: tgtP.id }) })
+      } else if (e.kind === 'tree' && tgtU) {
+        items.push({ label: `Modifier ${tgtU.nom}…`, onClick: () => setDialog({ kind: 'unit', unit: tgtU }) })
+      } else if (e.kind !== 'tree') {
+        const link = data.liens.find((l) => l.id === e.linkId)
+        if (link) items.push({ label: 'Terminer ce lien…', danger: true, onClick: () => setDialog({ kind: 'end', link }) })
+      }
+    }
+    if (srcP) items.push({ label: `Ouvrir la fiche de ${fullName(srcP)}`, onClick: () => setSelectedId(srcP.id) })
+    if (tgtP) items.push({ label: `Ouvrir la fiche de ${fullName(tgtP)}`, onClick: () => setSelectedId(tgtP.id) })
+    if (srcU && !tgtU) items.push({ label: `Ouvrir la fiche de ${srcU.nom}`, onClick: () => setSelectedId(unitNodeId(srcU.id)) })
+    if (items.length) { if (items.length > 2 && canEdit) items.splice(items.findIndex((i) => !i.danger && i.label.startsWith('Ouvrir')), 0, sep); setEdgeMenu({ items, anchor: new DOMRect(x, y, 0, 0) }) }
+  }
+
   const createItems: MenuItem[] = [
     { label: 'Une direction', onClick: () => setDialog({ kind: 'unit', unitKind: 'direction' }) },
     { label: 'Un secteur', onClick: () => setDialog({ kind: 'unit', unitKind: 'secteur' }) },
@@ -185,7 +243,7 @@ export default function OrganigrammePage() {
             )}
           </div>
           <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--o-muted)' }}>Organigramme au
-            <input className="org-input" type="date" value={asOf} onChange={(e) => e.target.value && setAsOf(e.target.value)} aria-label="Date d'effet de l'organigramme" />
+            <input className="org-input" type="date" value={asOf} onChange={(e) => { if (e.target.value) { setAsOf(e.target.value); setFitSignal((n) => n + 1) } }} aria-label="Date d'effet de l'organigramme" />
           </label>
           <select className="org-input" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} aria-label="Filtrer par statut">
             <option value="all">Tous les statuts</option>{(Object.keys(STATUS_LABEL) as OrgStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
@@ -206,8 +264,8 @@ export default function OrganigrammePage() {
         {view === 'graph' && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs" style={{ color: 'var(--o-muted)' }}>
             <div className="flex gap-1" role="group" aria-label="Organisation affichée">
-              <button type="button" className="org-btn" style={{ minHeight: 28, fontSize: 12 }} aria-pressed={mode === 'managers'} onClick={() => setMode('managers')}><UserCog className="h-3.5 w-3.5" aria-hidden />Managers</button>
-              <button type="button" className="org-btn" style={{ minHeight: 28, fontSize: 12 }} aria-pressed={mode === 'structure'} onClick={() => setMode('structure')}><Landmark className="h-3.5 w-3.5" aria-hidden />Directions</button>
+              <button type="button" className="org-btn" style={{ minHeight: 28, fontSize: 12 }} aria-pressed={mode === 'managers'} onClick={() => { setMode('managers'); setFitSignal((n) => n + 1) }}><UserCog className="h-3.5 w-3.5" aria-hidden />Managers</button>
+              <button type="button" className="org-btn" style={{ minHeight: 28, fontSize: 12 }} aria-pressed={mode === 'structure'} onClick={() => { setMode('structure'); setFitSignal((n) => n + 1) }}><Landmark className="h-3.5 w-3.5" aria-hidden />Directions</button>
             </div>
             <span className="inline-flex items-center gap-1.5"><svg width="26" height="8" aria-hidden><line x1="0" y1="4" x2="26" y2="4" stroke="var(--o-accent)" strokeWidth="2" /></svg>Hiérarchie directe</span>
             {(Object.keys(LINK_LABEL) as (keyof typeof LINK_LABEL)[]).map((t) => (
@@ -231,7 +289,15 @@ export default function OrganigrammePage() {
             ))}
           </ul>
         )}
-        {(notice || busy) && <p role="status" className="text-xs" style={{ color: 'var(--o-amber)' }}>{busy ?? notice}</p>}
+        {(notice || busy) && (
+          <p role="status" className="org-glass flex items-start justify-between gap-3 rounded-xl px-3 py-2 text-sm" style={{ color: 'var(--o-text)', borderColor: 'var(--o-green)' }}>
+            <span>{busy ?? notice}</span>
+            {notice && !busy && <button type="button" className="org-btn" style={{ minHeight: 24 }} onClick={() => setNotice(null)} aria-label="Fermer le message">×</button>}
+          </p>
+        )}
+        {canEdit && view === 'graph' && (
+          <p className="org-hint">Astuce : survolez une carte puis tirez la pastille <strong>du bas</strong> vers un salarié pour le rattacher (la pastille <strong>du haut</strong> sert à choisir son manager ou sa direction, celles des <strong>côtés</strong> à créer un lien hors hiérarchie). Cliquez sur une <strong>ligne</strong> pour détacher ou changer un rattachement, sur une <strong>carte</strong> pour ouvrir sa fiche.</p>
+        )}
       </header>
 
       <main className="relative min-h-[520px] flex-1" aria-busy={chart.isLoading}>
@@ -257,7 +323,7 @@ export default function OrganigrammePage() {
             <div className="absolute inset-0">
               {view === 'graph' && <OrgChartCanvas data={data} tree={tree.nodes} collapsed={collapsed} onToggle={toggle} selectedId={selectedId} onSelect={setSelectedId}
                 matches={matches} showLinks={showLinks} focus={focus} fitSignal={fitSignal}
-                onMenu={(id, anchor) => setMenu({ id, anchor })} mode={mode} />}
+                onMenu={(id, anchor) => setMenu({ id, anchor })} mode={mode} canEdit={canEdit} onLink={onLink} onEdge={onEdge} />}
               {view === 'teams' && <TeamsView data={data} canEdit={canEdit} onSelect={pick} />}
               {view === 'list' && <OrgListView tree={tree.nodes} data={data} matches={matches} onSelect={pick} />}
             </div>
@@ -271,7 +337,8 @@ export default function OrganigrammePage() {
           </>
         )}
       </main>
-      {dialog && data && <OrgDialogs dialog={dialog} data={data} asOf={asOf} onClose={() => setDialog(null)} />}
+      {dialog && data && <OrgDialogs dialog={dialog} data={data} asOf={asOf} onClose={() => setDialog(null)} onDone={dialogDone} />}
+      {edgeMenu && <OrgMenu anchor={edgeMenu.anchor} title="Lien" items={edgeMenu.items} onClose={() => setEdgeMenu(null)} />}
       {menu && <OrgMenu anchor={menu.anchor} title="Actions" items={menuItems(menu.id)} onClose={() => setMenu(null)} />}
       {createAnchor && <OrgMenu anchor={createAnchor} title="Créer" items={createItems} onClose={() => setCreateAnchor(null)} />}
     </div>

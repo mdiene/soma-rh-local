@@ -1,0 +1,20 @@
+---
+title: "Matrice de sécurité"
+description: "SOMA-RH face au niveau attendu (Sage, Frappe HR, Workday d'après le notebook)."
+---
+
+| Contrôle | Attendu | SOMA-RH |
+|---|---|---|
+| RBAC par rôle | admin, rh, paie, manager, salarié | ✅ RLS `has_role` |
+| Périmètre manager | équipe uniquement | ✅ `phase3_manager_team_scope` |
+| Séparation des tâches | initiateur ≠ approbateur | ✅ `payroll_separation_taches`, validation admin seule |
+| Audit immuable | chaîné, vérifiable | ✅ chaîne de hachage (`audit_unique_chaine`) ; stockage WORM ❌ |
+| ABAC (IP, MFA, sensibilité) | politiques contextuelles | ❌ |
+| Inscription contrôlée | invitation / admin | ❌ `signup` public |
+| Sessions | rotation, révocation, expiration | ❌ refresh = access, pas de révocation |
+| MFA / SSO (SAML, OIDC, SCIM) | oui | ❌ |
+| Anti-force brute | limitation, verrouillage | ❌ |
+| Chiffrement colonnes sensibles | RIB, n° social | à vérifier (non constaté) |
+| Masquage des données | par rôle | à vérifier |
+| Sauvegarde / restauration testée | oui | 🟡 scripts `local-backup/restore.ps1` |
+| Scan de données personnelles | oui | ✅ `scan-pii.sh` |

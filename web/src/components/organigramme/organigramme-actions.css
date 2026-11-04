@@ -32,3 +32,19 @@
 .org-input option[data-assigned='false'] { color: var(--o-green); }
 
 @media (prefers-reduced-motion: reduce) { .org-menu, .org-plus { animation: none; transition: none; } }
+
+/* clics : les cartes restent cliquables même quand le canevas n'a ni sélection ni déplacement (React Flow les passe sinon en pointer-events: none) */
+.org-theme .react-flow__node { pointer-events: all !important; }
+.org-theme .react-flow__edge { cursor: pointer; }
+.org-theme .react-flow__edge:hover .org-edge { stroke-width: 3; }
+
+/* poignées de liaison : pastilles visibles au survol d'une carte (RH) pour tirer un lien vers une autre carte */
+.org-handle-link { width: 16px; height: 16px; border-radius: 999px; background: var(--o-accent); border: 2px solid var(--o-bg); opacity: 0; cursor: crosshair; transition: opacity 120ms, transform 120ms; z-index: 3; }
+.org-handle-link.org-handle-side { background: var(--o-violet); }
+.org-handle-off { display: none; }
+.org-theme .react-flow__node:hover .org-handle-link, .org-theme .react-flow__node:focus-within .org-handle-link, .org-theme .react-flow.connecting .org-handle-link { opacity: 1; }
+.org-handle-link:hover { box-shadow: 0 0 0 4px color-mix(in srgb, var(--o-accent) 35%, transparent); }
+@media (hover: none) { .org-handle-link { opacity: .8; } }
+.org-theme .react-flow__connection-path { stroke: var(--o-accent); stroke-width: 2.4; stroke-dasharray: 6 5; }
+.org-hint { font-size: 12px; color: var(--o-muted); }
+.org-hint kbd { font: inherit; font-weight: 700; color: var(--o-text); }

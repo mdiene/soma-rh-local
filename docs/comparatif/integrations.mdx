@@ -1,0 +1,20 @@
+---
+title: "Intégrations"
+description: "Intégrations attendues non couvertes par SOMA-RH, avec priorité."
+---
+
+| # | Intégration | Besoin | État | Priorité |
+|---|---|---|---|---|
+| 1 | Comptabilité (OD de paie, SYSCOHADA) | fichier équilibré après clôture | absent | haute |
+| 2 | Fichiers IPRES / CSS (NDAMLI) | déclaration nominative mensuelle (avant le 15 selon les sources) | absent | haute |
+| 3 | DGID (IR, TRIMF, CFCE) | états de reversement | partiel (états) | haute |
+| 4 | Virements bancaires | fichier d'ordres au format de la banque | absent | moyenne |
+| 5 | Mobile Money (Wave, Orange Money) | acomptes et salaires | absent | moyenne (API à vérifier auprès des opérateurs) |
+| 6 | E-mail / SMS / WhatsApp | alertes de validation, bulletins | absent | haute |
+| 7 | Pointeuses biométriques | import des pointages | absent | moyenne |
+| 8 | SSO / SCIM | comptes entreprise | absent | basse |
+| 9 | API publique documentée, webhooks | partenaires | partiel (PostgREST) | moyenne |
+
+<Note>
+Les formats exacts (NDAMLI, banques, opérateurs) ne sont pas dans les sources : à obtenir auprès des organismes avant développement.
+</Note>

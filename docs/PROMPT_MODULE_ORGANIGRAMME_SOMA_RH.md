@@ -288,3 +288,17 @@ Aucune donnée personnelle réelle dans la réponse.
 ## 3. Image de référence
 
 À copier dans `docs\captures-organigramme\reference-organigramme.png`. Éléments à retenir : cartes à avatar et pastille de statut, connecteurs fins colorés avec tracé animé, bouton Développer/Réduire sous chaque nœud, lien pointillé étiqueté « rattachement pointillé », mini-carte en bas à droite, contrôles de zoom, barre de recherche, fil d'Ariane, bouton Exporter. Les statuts « en ligne » et « en réunion » de l'image ne sont pas repris (donnée inexistante dans SOMA-RH).
+
+---
+
+## Évolutions v1.1 — navigabilité et gestion directe (4/11/2026)
+
+À appliquer en plus du prompt initial ; elles remplacent les règles contraires (notamment le motif obligatoire).
+
+1. **Chaque élément est interactif** : clic sur une carte (salarié, société, direction, secteur, section) = fiche latérale avec toutes les actions de rattachement et de détachement ; clic sur une ligne = menu (détacher, changer, terminer un lien, ouvrir les fiches) ; bouton « + » = menu d'actions de la carte. Vérifier que le canevas ne désactive pas les clics (cartes en `pointer-events: none` quand ni sélection ni déplacement ne sont activés).
+2. **Liaison à la souris** : poignées visibles au survol (bas = rattacher un salarié sous cette carte, haut = choisir son manager ou sa direction, côtés = lien hors hiérarchie). Déposer sur le corps de la carte suffit. Toujours ouvrir une fenêtre de confirmation préremplie, jamais d'écriture directe.
+3. **Motif toujours facultatif** (« information complémentaire ») ; toute action est journalisée avec ou sans motif.
+4. **Rattachement à une direction** : proposer de rattacher aussi le salarié au responsable de la direction (coché par défaut s'il a déjà un manager) ; afficher et journaliser « de A à B » ; notifier le salarié concerné s'il a un compte.
+5. **Retour visuel** : après toute création ou rattachement, message de confirmation visible (qui, où, ancien/nouveau manager) et bascule vers la vue où l'élément apparaît (« Directions » pour une unité). Aucune action ne doit réussir ou échouer en silence.
+6. **Cohérence avec « Équipes et managers »** : états d'affectation À venir / Actif / Désaffecté ; clôturer = désaffecter dès aujourd'hui ; un manager n'a pas besoin de compte utilisateur.
+7. **Aide intégrée** : une ligne d'astuce rappelle les gestes (pastilles, clic sur une ligne, clic sur une carte) pour les utilisateurs RH.

@@ -84,3 +84,10 @@ Voir [SYNTHESE_CORPUS_DOCS.md](./SYNTHESE_CORPUS_DOCS.md), [ARCHITECTURE_CIBLE_S
 ## Fichiers sources
 
 `SYNTHESE_CORPUS_DOCS.md` ; `FEUILLE_DE_ROUTE_V3_SOMA_RH.md` ; `ARCHITECTURE_CIBLE_SOMA_RH.md` ; `PLAN_CONTROLE_QUALITE_SOMA_RH.md` ; `FEUILLE_DE_ROUTE_SOMA_RH.md` (§10, l. 673-694) ; `FEUILLE_DE_ROUTE_NEXTGEN_SOMA_RH.md` (§8) ; `CADRE_DE_TRAVAIL_ET_PROPOSITION_TECHNIQUE.md` (§10) ; `AUDIT_COMMERCIALISATION_SOMA_RH.md` (§5.1 bis, §11) ; `ARBITRAGES_PAIE.md` ; `ANALYSE_COMPARATIVE_CIBLE_VS_EXISTANT.md` ; `PROMPT_RESTRUCTURATION_LOCALE_SOMA_RH.md` ; état Git de la session.
+
+## Risques ajoutés le 4 novembre 2026 (benchmark)
+
+- R-SEC-1 : `signup` public avec e-mail confirmé automatiquement (api/server.mjs). Décision à prendre : invitation par admin.
+- R-SEC-2 : jeton de rafraîchissement identique au jeton d'accès, sans révocation.
+- R-LEG-1 : sources divergentes (quotient familial vs grille forfaitaire ; HS +40 % dès la 48e ou 49e heure ; référence « loi 2026-18 » vs loi 97-17). À confirmer avant modification du moteur.
+- R-INT-1 : aucune intégration comptable, bancaire ou NDAMLI.

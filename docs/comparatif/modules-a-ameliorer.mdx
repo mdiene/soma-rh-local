@@ -1,0 +1,14 @@
+---
+title: "Modules à améliorer"
+description: "Modules existants à renforcer, avec constat et action."
+---
+
+| Module | Constat | Action |
+|---|---|---|
+| Authentification (API) | signup public, sessions non révocables, pas de MFA | invitation par admin, jeton de rafraîchissement opaque et révoqué, limitation de débit, TOTP |
+| Notifications | en base seulement | worker d'envoi e-mail (SMTP) et journal de livraison |
+| Règlement L8 | pas de fichier bancaire | export des ordres au format bancaire |
+| États et déclarations | pas de format IPRES/CSS | fichiers nominatifs conformes après validation des formats |
+| Gouvernance de paie | pas de journal d'équilibre comptable | contrôle bloquant « rubrique sans imputation » |
+| Planning / présences | pas d'import de pointeuse | import CSV puis connecteur |
+| Registre légal | valeurs divergentes entre sources (quotient familial, HS > 48 h) | trancher article par article, noter « à confirmer » |

@@ -43,7 +43,7 @@ export function DetailPanel({ person, data, canEdit, onClose, onSelect, onAction
         <span className="org-avatar" style={{ width: 52, height: 52, background: 'linear-gradient(135deg, var(--o-accent), var(--o-accent-2))' }} aria-hidden>{initials(person)}</span>
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-semibold leading-tight">{fullName(person)}</h2>
-          <p className="text-sm" style={muted}>{person.poste}</p>
+          {person.poste && <p className="text-sm" style={muted}>{person.poste}</p>}
           <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs" style={muted}>
             Matricule {person.matricule} · {STATUS_LABEL[person.statut]}
             {isManager(person) && <span className="org-chip" data-tone="manager"><UserCog className="h-3 w-3" aria-hidden />Manager</span>}
@@ -62,7 +62,7 @@ export function DetailPanel({ person, data, canEdit, onClose, onSelect, onAction
 
       <Section icon={<Briefcase className="h-3.5 w-3.5" aria-hidden />} title="Poste et direction"
         actions={canEdit && <><Act onClick={() => onAction({ kind: 'post', employeeId: person.id })}>Poste</Act><Act onClick={() => onAction({ kind: 'employee-unit', employeeId: person.id })}>{unit ? 'Changer d’unité' : 'Affecter'}</Act></>}>
-        <p className="text-sm">{person.poste}</p>
+        {person.poste ? <p className="text-sm">{person.poste}</p> : <p className="text-sm" style={muted}>Aucun poste attribué.</p>}
         {unit ? <button type="button" className="org-btn mt-1.5 w-full justify-start" onClick={() => onSelect(unitNodeId(unit.id))}><Landmark className="h-4 w-4" aria-hidden />{unit.nom}<span className="ml-auto text-xs font-normal" style={muted}>{UNIT_LABEL[unit.type]}</span></button>
           : <p className="mt-1 text-sm" style={muted}>Non rattaché à une direction, un secteur ou une section.</p>}
       </Section>

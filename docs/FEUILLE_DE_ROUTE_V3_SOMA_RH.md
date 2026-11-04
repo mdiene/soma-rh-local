@@ -203,3 +203,7 @@ conception (fiche de ticket) → migration SQL → fonction de calcul ou politiq
 ## Module Organigramme (hors lots, demandé le 3/11/2026)
 
 Fait : organigramme interactif dans « Équipes et managers » (`/equipes/organigramme`), hiérarchie directe + liens hors hiérarchie (pointillé, intérim, fonctionnel) + équipes transverses, date d'effet, recherche, vue liste accessible, exports CSV/PNG journalisés. Détails, hypothèses à valider et mesures : `ORGANIGRAMME_DECISIONS.md` ; matrice de tests : `ORGANIGRAMME_TESTS.md`. **Non vérifié à l'écran** (aucun compte de test avec rôle). Règle modifiée : un seul manager direct valide par salarié à une date.
+
+## Ajout du 4 novembre 2026 — benchmark concurrents
+
+Voir `docs/comparatif/backlog-priorise.mdx`. Ordre proposé : sécurité de l'API (signup, sessions), arbitrage des règles légales contestées, export OD + journal d'équilibre, fichiers IPRES/CSS/DGID, e-mails, solde de tout compte, virements/Mobile Money.

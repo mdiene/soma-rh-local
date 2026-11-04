@@ -49,14 +49,13 @@ begin
   r := pg_temp.try(format('select public.org_set_manager(%L, %L, date %L, %L)', pg_temp.id('e4'), pg_temp.id('e2'), '2025-01-01', 'Réorganisation du service'));
   if r not like 'Réservé au service RH%' then raise exception '3 : écriture acceptée pour un salarié : %', r; end if;
   perform pg_temp.as_user(u_rh);
-  r := pg_temp.try(format('select public.org_set_manager(%L, %L, date %L, %L)', pg_temp.id('e3'), pg_temp.id('e1'), '2025-02-01', 'ok'));
-  if r not like '%motif%' then raise exception '3 : remplacement d''un manager sans motif valide accepté : %', r; end if;
-  -- premier rattachement : motif facultatif ; retrait d'un manager : motif exigé
+  -- le motif est facultatif partout (rattachement, remplacement, retrait) ; l'action est journalisée avec ou sans motif
   perform public.org_set_manager(pg_temp.id('e7'), pg_temp.id('e5'), date '2025-01-01', null);
   r := pg_temp.try(format('select public.org_set_manager(%L, null, date %L, null)', pg_temp.id('e7'), '2025-03-01'));
-  if r not like '%motif%' then raise exception '3 : retrait sans motif accepté : %', r; end if;
-  perform public.org_set_manager(pg_temp.id('e7'), null, date '2025-03-01', 'Changement de service');
-  if (select count(*) from public.audit_log where action = 'detachement_manager' and reason = 'Changement de service') <> 1 then raise exception '3 : détachement non journalisé'; end if;
+  if r <> 'OK' then raise exception '3 : retrait sans motif refusé : %', r; end if;
+  if (select count(*) from public.audit_log where action = 'detachement_manager' and record_id = pg_temp.id('e7')) <> 1 then raise exception '3 : détachement non journalisé'; end if;
+  r := pg_temp.try(format('select public.org_set_manager(%L, null, date %L, null)', pg_temp.id('e7'), '2025-03-02'));
+  if r not like '%pas de manager direct%' then raise exception '3 : détachement d''un salarié sans manager accepté : %', r; end if;
   perform public.org_set_manager(pg_temp.id('e7'), pg_temp.id('e5'), date '2025-04-01', null);
   perform public.org_set_manager(pg_temp.id('e4'), pg_temp.id('e2'), date '2025-01-01', 'Rattachement initial');
   perform public.org_set_manager(pg_temp.id('e4'), pg_temp.id('e3'), date '2025-07-01', 'Changement de responsable');
@@ -152,6 +151,42 @@ begin
   perform pg_temp.as_user(u_sal);
   r := pg_temp.try(format('select public.org_save_unit(null, %L, %L, null, null, null)', 'Interdit', 'direction'));
   if r not like 'Réservé au service RH%' then raise exception '9 : création d''unité acceptée pour un salarié : %', r; end if;
+  execute 'reset role';
+end $$;
+
+-- 10. rattachement à une direction : le salarié suit le responsable ; clôture d'une affectation ; manager sans compte
+do $$
+declare r text; j jsonb; a public.employee_manager_assignments; d uuid; u_rh uuid := current_setting('t.u_rh')::uuid;
+begin
+  perform pg_temp.as_user(u_rh);
+  -- e6 est sous e5 ; la direction a pour responsable e1 : le rattachement avec « suivre le responsable » le place sous e1
+  perform public.org_set_manager(pg_temp.id('e6'), pg_temp.id('e5'), date '2025-01-01', null);
+  d := public.org_save_unit(null, 'Direction fictive B', 'direction', null, pg_temp.id('e1'), null);
+  j := public.org_attach_to_unit(pg_temp.id('e6'), d, false);
+  if (select department_id from public.employees where id = pg_temp.id('e6')) <> d then raise exception '10 : unité non affectée'; end if;
+  if not exists (select 1 from public.employee_manager_assignments where employee_id = pg_temp.id('e6') and manager_employee_id = pg_temp.id('e5') and valid_to is null) then
+    raise exception '10 : sans l''option, le manager ne doit pas changer';
+  end if;
+  j := public.org_attach_to_unit(pg_temp.id('e6'), d, true);
+  if not exists (select 1 from public.employee_manager_assignments where employee_id = pg_temp.id('e6') and manager_employee_id = pg_temp.id('e1') and valid_to is null) then
+    raise exception '10 : salarié non rattaché au responsable de la direction';
+  end if;
+  if j->>'message' not like '%manager direct passe de%' or j->>'nouveau_manager' is null then raise exception '10 : message de changement absent : %', j; end if;
+  -- détachement le jour même d'un rattachement qui commence aujourd'hui : doit réussir
+  perform public.org_set_manager(pg_temp.id('e6'), null, current_date, null);
+  if exists (select 1 from public.employee_manager_assignments where employee_id = pg_temp.id('e6') and (valid_to is null or valid_to >= current_date)) then
+    raise exception '10 : détachement du jour sans effet';
+  end if;
+  -- manager sans compte utilisateur (les salariés fictifs n'en ont pas)
+  perform public.org_set_manager(pg_temp.id('e7'), null, current_date, null);
+  select * into a from public.assign_manager_employee(pg_temp.id('e5'), pg_temp.id('e7'), current_date + 10, null);
+  -- clôture : avant le début => supprimée (l'affectation n'avait jamais pris effet)
+  a := public.close_manager_assignment(a.id, current_date + 9);
+  if exists (select 1 from public.employee_manager_assignments where id = a.id) then raise exception '10 : affectation à venir non supprimée'; end if;
+  -- clôture d'une affectation en cours : fin la veille => état « désaffecté »
+  select id into a.id from public.employee_manager_assignments where employee_id = pg_temp.id('e4') and valid_to is null;
+  a := public.close_manager_assignment(a.id, current_date - 1);
+  if (select valid_to from public.employee_manager_assignments where id = a.id) <> current_date - 1 then raise exception '10 : fin d''affectation incorrecte'; end if;
   execute 'reset role';
 end $$;
 
