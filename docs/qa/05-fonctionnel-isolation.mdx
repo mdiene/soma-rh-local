@@ -1,0 +1,36 @@
+---
+title: "05 — Isolation par rôle (premier lot)"
+description: "Tests de l'API avec le jeton de chaque rôle : accès anonyme, salarié, rh, paie, manager."
+---
+
+## Objectif et périmètre
+
+Prouver qu'aucun rôle ne lit ou ne modifie ce qui lui est interdit (invariant I11). Les 57 tables exposées sont testées avec de vrais jetons, via l'API locale, sur le jeu `pme-25` (comptes `qa-*@example.test`).
+
+## Résultats : 10 tests réussis, 0 échec
+
+| Test | Résultat |
+|---|---|
+| Anonyme : aucune ligne lisible dans aucune table | réussi |
+| Salarié : ne voit que son dossier (1 ligne dans `employees`) | réussi |
+| Salarié : aucune ligne d'un autre salarié dans les 17 tables à `employee_id` | réussi (test significatif : au moins 5 tables contiennent des données d'autres salariés) |
+| Salarié : uniquement des bulletins validés | réussi |
+| Salarié : ne modifie ni paramètres de paie ni rôles | réussi |
+| Deux salariés distincts : dossiers différents | réussi |
+| rh : ne modifie ni taux ni barème IR | réussi |
+| manager : ne lit aucune rémunération ni bulletin | réussi |
+| paie : peut modifier les taux (droit prévu par les politiques) | réussi, voir D-002 |
+
+Lancer : `node --test tests/api/isolation.test.mjs` (après `scripts/qa-create-users.ps1`).
+
+## Constats
+
+Voir le [journal des défauts](./defects) : D-001 corrigé (audit des paramètres légaux), D-002 à arbitrer.
+
+## Ce que cela change pour les utilisateurs
+
+Un salarié ne peut pas lire les bulletins ou les données d'un collègue, et un visiteur non connecté ne lit rien. Les changements de barème et de taux sont désormais tracés.
+
+## Reste à tester
+
+Écritures par rôle sur chaque table, fonctions RPC par rôle (valider, rouvrir, annuler), jeton expiré, concurrence.

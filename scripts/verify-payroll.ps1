@@ -22,6 +22,7 @@ with s as (
   select e.employee_number, public.compute_salary_slip(e.id, date '$Start', date '$End') as r
   from public.employees e
   where e.status = 'Active'
+    and e.employee_number not like 'QA%'  -- jeux de test fictifs exclus : l'empreinte porte sur la population d'origine
     and exists (select 1 from public.salary_structure_assignments a where a.employee_id = e.id and a.from_date <= date '$Start')
 ), t as (
   select employee_number,

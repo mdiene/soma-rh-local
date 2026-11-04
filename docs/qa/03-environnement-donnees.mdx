@@ -34,6 +34,18 @@ Disposer de jeux de données fictifs, rejouables et sans risque pour les donnée
 
 ## Reste à faire pour clore la phase
 
-- Scénarios `pme-80`, `eti-200`, `grande-1000` : paramètres prévus dans le script, chargement à mesurer.
+- Historique de 12 mois de paie validée (scénarios chargés : voir ci-dessous).
 - Historique de 12 mois de paie validée, présences, congés, acomptes et rotations.
-- Comptes de test par rôle et installation de Playwright.
+- Installation de Playwright.
+
+## Mise à jour : scénarios et comptes
+
+| Scénario | Salariés QA | Chargement | Calcul de paie de tous les actifs (lecture seule) |
+|---|---|---|---|
+| `pme-80` | 80 | 2,1 s | 79 bulletins en 171 ms |
+| `eti-200` | 210 | 0,8 s | 209 bulletins en 279 ms |
+| `grande-1000` | 1 050 | 0,8 s | 1 049 bulletins en 672 ms |
+
+Le calcul croît linéairement, environ 0,6 ms par salarié sur cette machine, sans historique de cumuls. La mesure complète de la phase 7 (écriture, livre de paie, planning) reste à faire.
+
+Comptes de test : `scripts/qa-create-users.ps1` crée admin, rh, paie, manager et deux salariés rattachés aux dossiers `QA0011`, `QA0012` et `QA0013`. Les mots de passe sont jetables et écrits dans `tests/.env.qa`, ignoré par Git.

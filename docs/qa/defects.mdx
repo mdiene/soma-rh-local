@@ -1,0 +1,18 @@
+---
+title: "Journal des défauts"
+description: "Défauts et constats de la campagne QA, par gravité, avec leur statut et le test qui les clôt."
+---
+
+Gravités : S1 argent faux ou fuite de données, S2 majeur, S3 mineur, S4 cosmétique. Un défaut n'est clos qu'avec un test qui passe.
+
+| ID | Gravité | Constat | Rôle | Statut | Test |
+|---|---|---|---|---|---|
+| D-001 | S2 | Les barèmes IR et TRIMF, familles, rubriques, structures salariales, types de congé, société, périodes de paie, postes et types de poste (13 tables) se modifiaient sans trace dans le journal d'audit (invariant I10). | paie, admin | **Clos** le 2026-11-04 par la migration `20261104130000_audit_parametrage_legal` | `tests/sql/audit_parametrage.sql` : échoue sans la migration (« 0 → 0 »), passe avec |
+| D-002 | S3 | Le rôle `paie` peut modifier les taux de paie et le barème sans seconde validation. C'est le comportement voulu des politiques RLS, mais aucun contrôle à quatre yeux ne s'applique aux changements de taux. | paie | Ouvert, **décision du propriétaire** : faut-il une validation par l'admin ? | `isolation.test.mjs` documente le droit actuel |
+| D-003 | S2 | RL-010 : SMIG horaire en base 370,526 F, décret 2023-1710 cité vers 433 F. | paramètres | Ouvert, à confirmer (voir le registre légal) | oracle O-RL010 à écrire |
+| D-004 | S2 | RL-005 : un seul taux d'accident du travail (5 %) alors qu'il dépend du risque notifié par la CSS. | paramètres | Ouvert, à confirmer | oracle O-RL005 |
+| D-005 | S4 | `verify-payroll.ps1` comptait les salariés fictifs QA : l'empreinte échouait dès qu'un scénario était chargé. | scripts | **Clos** : les matricules `QA%` sont exclus | `verify-payroll.ps1` : PASS avec 210 salariés QA chargés |
+
+## Constat hors périmètre
+
+`tests/sql/organigramme.sql` échoue par moments pendant que le chantier Organigramme est en cours de modification (migration `20261104110000_organigramme_actions.sql` non commitée). Ce n'est pas un défaut de la campagne : à relancer une fois ce chantier commité.

@@ -18,3 +18,6 @@ db/seed/
 .migration-data.dump
 # Sauvegardes locales pouvant contenir des données personnelles
 backups/
+
+# Identifiants de test QA (mots de passe jetables)
+tests/.env.qa
