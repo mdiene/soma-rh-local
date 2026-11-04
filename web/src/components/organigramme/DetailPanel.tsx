@@ -1,6 +1,6 @@
-import { AlertTriangle, Briefcase, GitBranch, Landmark, Link2, Mail, Pencil, Plus, Trash2, UserCog, Users, X } from 'lucide-react'
+import { AlertTriangle, Briefcase, GitBranch, Landmark, Link2, Mail, Pencil, Plus, Trash2, UserCog, UserPlus, Users, X } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { LINK_LABEL, STATUS_LABEL, UNIT_LABEL, fmtDate, fullName, initials, isManager, unitNodeId, type OrgData, type OrgNode, type OrgUnit } from '../../lib/org'
+import { LINK_LABEL, STATUS_LABEL, UNIT_LABEL, fmtDate, fullName, initials, isManager, openPositions, unitNodeId, type OrgData, type OrgNode, type OrgUnit } from '../../lib/org'
 import type { Dialog } from './OrgDialogs'
 
 /** Fiche affichée au clic sur n'importe quel élément : salarié ou unité. Actions de rattachement / détachement pour la RH. */
@@ -116,6 +116,7 @@ export function UnitPanel({ unit, data, canEdit, onClose, onSelect, onAction }: 
   const parent = data.unites.find((u) => u.id === unit.parent)
   const children = data.unites.filter((u) => u.parent === unit.id)
   const members = data.noeuds.filter((p) => p.unite === unit.id)
+  const vacants = openPositions(data, unit.id)
   return (
     <aside className="org-sheet org-glass p-4" role="complementary" aria-label={`Fiche de ${unit.nom}`} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
       <div className="flex items-start gap-3">
@@ -138,6 +139,24 @@ export function UnitPanel({ unit, data, canEdit, onClose, onSelect, onAction }: 
         <div className="space-y-1">{children.map((u) => <button key={u.id} type="button" className="org-btn w-full justify-start" onClick={() => onSelect(unitNodeId(u.id))}>{u.nom}<span className="ml-auto text-xs font-normal" style={muted}>{UNIT_LABEL[u.type]}</span></button>)}
           {children.length === 0 && <p className="text-sm" style={muted}>Aucune.</p>}</div>
       </Section>
+
+      {(canEdit || vacants.length > 0) && (
+        <Section icon={<UserPlus className="h-3.5 w-3.5" aria-hidden />} title={`Postes prévus (${vacants.length})`}
+          actions={canEdit && <Act onClick={() => onAction({ kind: 'vacancy', unitId: unit.id })}><Plus className="h-3 w-3" aria-hidden />Prévoir un poste</Act>}>
+          <div className="space-y-1.5">{vacants.map((v) => (
+            <div key={v.id} className="rounded-lg border px-2.5 py-2 text-sm" style={{ borderColor: v.vacants > 0 ? 'var(--o-amber)' : 'var(--o-border)', borderStyle: v.vacants > 0 ? 'dashed' : 'solid' }}>
+              <div className="flex items-center justify-between gap-2"><strong className="truncate">{v.poste}</strong>
+                <span className="text-xs" style={v.vacants > 0 ? { color: 'var(--o-amber)', fontWeight: 600 } : muted}>{v.vacants > 0 ? `${v.vacants} à pourvoir` : 'Pourvu'}</span></div>
+              <p className="text-xs" style={muted}>{v.pourvus} en poste sur {v.prevus} prévu{v.prevus > 1 ? 's' : ''}</p>
+              {canEdit && <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {v.vacants > 0 && <Act onClick={() => onAction({ kind: 'vacancy-fill', vacancy: v })}>Pourvoir…</Act>}
+                <Act onClick={() => onAction({ kind: 'vacancy', unitId: unit.id, vacancy: v })}><Pencil className="h-3 w-3" aria-hidden />Modifier</Act>
+                <Act danger onClick={() => onAction({ kind: 'vacancy-delete', vacancy: v })}><Trash2 className="h-3 w-3" aria-hidden />Supprimer</Act>
+              </div>}
+            </div>))}
+            {vacants.length === 0 && <p className="text-sm" style={muted}>Aucun poste prévu. Indiquez l’effectif attendu pour voir les postes à pourvoir.</p>}</div>
+        </Section>
+      )}
 
       <Section icon={<Users className="h-3.5 w-3.5" aria-hidden />} title={`Salariés (${members.length})`}
         actions={canEdit && <Act onClick={() => onAction({ kind: 'unit-attach', unitId: unit.id })}><Plus className="h-3 w-3" aria-hidden />Rattacher un salarié</Act>}>

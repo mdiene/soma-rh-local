@@ -15,6 +15,7 @@ export function OrgListView({ tree, data, matches, onSelect }: { tree: Map<strin
     const detail = v.kind === 'person'
       ? [v.person!.poste, STATUS_LABEL[v.person!.statut], v.person!.departement].filter(Boolean).join(' · ')
       : v.kind === 'group' ? `${kids.length} ${v.sub ?? 'salarié(s)'}`
+      : v.kind === 'vacant' ? `Poste ouvert · ${v.vacancy!.vacants} à pourvoir sur ${v.vacancy!.prevus}`
       : v.kind === 'unit' ? `${UNIT_LABEL[v.unit!.type]} · ${v.unit!.membres} salarié(s)` : 'Société Minière Africaine'
     const dim = matches && v.kind === 'person' && !matches.has(id)
     const row = (

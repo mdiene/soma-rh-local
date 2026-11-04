@@ -1,12 +1,12 @@
 import { memo } from 'react'
 import { BaseEdge, EdgeLabelRenderer, Handle, Position, getBezierPath, getSmoothStepPath, type EdgeProps, type Node, type NodeProps } from '@xyflow/react'
-import { Building2, CheckCircle2, ChevronDown, ChevronRight, Cog, Landmark, Layers, LayoutGrid, Plane, Plus, Repeat, UserCog, Users } from 'lucide-react'
+import { Building2, CheckCircle2, UserPlus, ChevronDown, ChevronRight, Cog, Landmark, Layers, LayoutGrid, Plane, Plus, Repeat, UserCog, Users } from 'lucide-react'
 import { STATUS_LABEL, UNIT_LABEL, fullName, initials, isManager, type UnitKind } from '../../lib/org'
 import { useOrg, type CardData, type EdgeData } from './orgContext'
 
 /** Cartes de l'organigramme (salarié, société, groupe « non rattachés ») et arêtes (direct, pointillé, intérim, fonctionnel). */
 
-type CardNode = Node<CardData, 'person' | 'root' | 'group' | 'unit'>
+type CardNode = Node<CardData, 'person' | 'root' | 'group' | 'unit' | 'vacant'>
 
 const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h }
 
@@ -127,6 +127,25 @@ export const OrgEdge = memo(function OrgEdge(props: EdgeProps) {
   )
 })
 
+/** Poste ouvert : carte en pointillé sous son unité ; un clic ouvre la fiche de l'unité où l'on peut le pourvoir. */
+export const VacantNode = memo(function VacantNode({ data, id }: NodeProps<CardNode>) {
+  const o = useOrg()
+  const v = data.view.vacancy!
+  return (
+    <div className="org-card org-vacant-card" data-selected={o.selectedId === id} data-dim={o.matches ? 'true' : 'false'}
+      role="button" tabIndex={0} aria-label={`Poste ouvert : ${v.poste}, ${v.vacants} à pourvoir sur ${v.prevus} prévu${v.prevus > 1 ? 's' : ''}`}
+      onClick={() => o.onSelect(id)} onKeyDown={(e) => o.onKey(id, e)}>
+      <Handle id="t" type="target" position={Position.Top} isConnectable={false} className="org-handle" />
+      <span className="org-avatar org-avatar-vacant" aria-hidden><UserPlus className="h-5 w-5" /></span>
+      <div className="min-w-0 flex-1">
+        <p className="org-name truncate">{v.poste}</p>
+        <p className="org-role truncate">Poste ouvert · {v.vacants} à pourvoir</p>
+        <p className="org-role truncate">{v.pourvus} pourvu{v.pourvus > 1 ? 's' : ''} sur {v.prevus} prévu{v.prevus > 1 ? 's' : ''}</p>
+      </div>
+    </div>
+  )
+})
+
 const UNIT_ICON: Record<UnitKind, typeof Landmark> = { direction: Landmark, secteur: Layers, section: LayoutGrid, service: Cog }
 
 /** Direction, secteur, section ou service : porte les salariés qui y sont rattachés. */
@@ -145,6 +164,7 @@ export const UnitNode = memo(function UnitNode({ data, id }: NodeProps<CardNode>
         <p className="org-name truncate">{u.nom}</p>
         <p className="org-role truncate">{UNIT_LABEL[u.type]} · {u.membres} salarié(s)</p>
         <p className="org-role truncate" style={{ fontWeight: 600 }}>Responsable : {o.personName(u.responsable) ?? 'non désigné'}</p>
+        {data.view.sub && <p className="org-role truncate" style={{ color: 'var(--o-amber)', fontWeight: 600 }}>{data.view.sub}</p>}
       </div>
       <PlusButton id={id} label={`Actions pour ${u.nom}`} />
       <Toggle id={id} count={data.view.children.length} />

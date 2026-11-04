@@ -135,6 +135,7 @@ export default function OrganigrammePage() {
       if (!u) return []
       return canEdit ? [
         { label: 'Rattacher un salarié à cette unité', onClick: () => setDialog({ kind: 'unit-attach', unitId: u.id }) },
+        { label: 'Prévoir un poste à pourvoir…', onClick: () => setDialog({ kind: 'vacancy', unitId: u.id }) },
         { label: 'Ajouter une sous-unité', onClick: () => setDialog({ kind: 'unit', parentId: u.id }) },
         { label: 'Modifier (nom, responsable…)', onClick: () => setDialog({ kind: 'unit', unit: u }) },
         sep, open, sep,

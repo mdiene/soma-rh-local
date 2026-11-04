@@ -15,10 +15,14 @@ export type OrgAnomaly = { code: string; employe: string; message: string }
 export type UnitKind = 'direction' | 'secteur' | 'section' | 'service'
 export type OrgUnit = { id: string; nom: string; type: UnitKind; parent: string | null; responsable: string | null; membres: number }
 export type OrgPost = { id: string; nom: string }
-export type OrgData = { date: string; noeuds: OrgNode[]; liens: OrgLink[]; equipes: OrgTeam[]; anomalies: OrgAnomaly[]; unites: OrgUnit[]; postes: OrgPost[] }
+/** Poste prévu dans une unité : effectif prévu, salariés en poste, reste à pourvoir (rh et paie seulement). */
+export type OrgVacancy = { id: string; unite: string; poste_id: string; poste: string; prevus: number; pourvus: number; vacants: number; note: string | null }
+export type OrgData = { date: string; noeuds: OrgNode[]; liens: OrgLink[]; equipes: OrgTeam[]; anomalies: OrgAnomaly[]; unites: OrgUnit[]; postes: OrgPost[]; vacants?: OrgVacancy[] }
 export const UNIT_LABEL: Record<UnitKind, string> = { direction: 'Direction', secteur: 'Secteur', section: 'Section', service: 'Service' }
 export const unitNodeId = (id: string) => 'u:' + id
 export const isUnitNode = (id: string) => id.startsWith('u:')
+export const vacancyNodeId = (id: string) => 'v:' + id
+export const openPositions = (data: OrgData, unitId: string) => (data.vacants ?? []).filter((v) => v.unite === unitId)
 /** Un salarié est « Manager » dès qu'il a des subordonnés directs ou qu'il dirige une unité ou une équipe (aucun compte requis). */
 export const isManager = (p: OrgNode) => p.subordonnes > 0 || p.responsable_de.length > 0
 
@@ -27,8 +31,8 @@ export const GROUP_ID = 'soma-unattached'
 export const CARD_W = 236
 export const CARD_H = 88
 
-export type ViewKind = 'person' | 'root' | 'group' | 'unit'
-export type ViewNode = { id: string; kind: ViewKind; person?: OrgNode; unit?: OrgUnit; label?: string; sub?: string; parent: string | null; children: string[] }
+export type ViewKind = 'person' | 'root' | 'group' | 'unit' | 'vacant'
+export type ViewNode = { id: string; kind: ViewKind; person?: OrgNode; unit?: OrgUnit; vacancy?: OrgVacancy; label?: string; sub?: string; parent: string | null; children: string[] }
 
 export const STATUS_LABEL: Record<OrgStatus, string> = { actif: 'Actif', en_conge: 'En congé', interim: 'Intérim' }
 export const LINK_LABEL: Record<Exclude<LinkType, 'direct'>, string> = { dotted: 'Rattachement pointillé', interim: 'Intérim', functional: 'Responsable fonctionnel' }
@@ -125,6 +129,16 @@ export function buildStructureTree(data: OrgData): { nodes: Map<string, ViewNode
     if (parent === GROUP_ID) unattached.push(p.id)
     nodes.set(p.id, { id: p.id, kind: 'person', person: p, parent, children: [] })
     nodes.get(parent)!.children.push(p.id)
+  }
+  // postes ouverts : une carte « à pourvoir » sous l'unité, après les salariés ; le total s'affiche sur la carte de l'unité
+  for (const v of data.vacants ?? []) {
+    const unitView = nodes.get(unitNodeId(v.unite))
+    if (!unitView || v.vacants <= 0) continue
+    const id = vacancyNodeId(v.id)
+    nodes.set(id, { id, kind: 'vacant', vacancy: v, label: v.poste, parent: unitView.id, children: [] })
+    unitView.children.push(id)
+    const total = (data.vacants ?? []).filter((x) => x.unite === v.unite).reduce((s, x) => s + x.vacants, 0)
+    unitView.sub = `${total} poste${total > 1 ? 's' : ''} à pourvoir`
   }
   if (!unattached.length) { nodes.delete(GROUP_ID); nodes.get(ROOT_ID)!.children = nodes.get(ROOT_ID)!.children.filter((c) => c !== GROUP_ID) } else nodes.get(ROOT_ID)!.children.push(GROUP_ID)
   return { nodes, unattached }

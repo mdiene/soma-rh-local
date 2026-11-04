@@ -48,3 +48,7 @@
 .org-theme .react-flow__connection-path { stroke: var(--o-accent); stroke-width: 2.4; stroke-dasharray: 6 5; }
 .org-hint { font-size: 12px; color: var(--o-muted); }
 .org-hint kbd { font: inherit; font-weight: 700; color: var(--o-text); }
+
+/* poste ouvert : carte en pointillé, couleur d'attention (jamais la couleur seule : libellé « Poste ouvert ») */
+.org-vacant-card { border-style: dashed; border-color: var(--o-amber); background: color-mix(in srgb, var(--o-amber) 8%, var(--o-card)); }
+.org-avatar-vacant { background: transparent; border: 2px dashed var(--o-amber); color: var(--o-amber); }

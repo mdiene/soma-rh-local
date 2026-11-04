@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { dataApi, unwrap, type ApiClient } from '../../lib/api'
-import { LINK_LABEL, UNIT_LABEL, assignmentInfo, fullName, type LinkType, type OrgData, type OrgLink, type OrgNode, type OrgUnit, type UnitKind } from '../../lib/org'
+import { LINK_LABEL, UNIT_LABEL, assignmentInfo, fullName, type LinkType, type OrgData, type OrgLink, type OrgNode, type OrgUnit, type OrgVacancy, type UnitKind } from '../../lib/org'
 import { PersonSelect } from './PersonSelect'
 
 /** Formulaires d'action de l'organigramme (RH/admin) : rattacher, détacher, créer direction / secteur / section / poste / équipe. */
@@ -23,6 +23,9 @@ export type Dialog =
   | { kind: 'team-add'; employeeId: string }
   | { kind: 'team-remove'; teamId: string; employeeId: string }
   | { kind: 'team-new' }
+  | { kind: 'vacancy'; unitId: string; vacancy?: OrgVacancy }
+  | { kind: 'vacancy-delete'; vacancy: OrgVacancy }
+  | { kind: 'vacancy-fill'; vacancy: OrgVacancy }
 
 export type DoneOpts = { structure?: boolean }
 type Env = { data: OrgData; asOf: string; close: () => void; done: (message: string | null, opts?: DoneOpts) => void }
@@ -371,6 +374,65 @@ function TeamNewForm({ env }: { env: Env }) {
   )
 }
 
+// ------------------------------------------------------------ postes prévus / à pourvoir
+function VacancyForm({ env, unitId, vacancy }: { env: Env; unitId: string; vacancy?: OrgVacancy }) {
+  const { data } = env
+  const unit = data.unites.find((u) => u.id === unitId)
+  const here = data.noeuds.filter((p) => p.unite === unitId).length
+  const [post, setPost] = useState(vacancy?.poste_id ?? '')
+  const [name, setName] = useState('')
+  const [count, setCount] = useState(String(vacancy?.prevus ?? 1))
+  const [note, setNote] = useState(vacancy?.note ?? '')
+  const save = useAction(async () => {
+    const id = name.trim() ? (unwrap(await db.rpc('org_save_post', { p_name: name })) as unknown as string) : post
+    return unwrap(await db.rpc('org_save_position', { p_unit: unitId, p_post: id, p_headcount: Number(count), p_note: note.trim() || null }))
+  }, env, () => `Poste prévu enregistré pour « ${unit?.nom ?? ''} » : il apparaît « à pourvoir » tant qu’il n’est pas occupé.`, { structure: true })
+  return (
+    <Shell title={vacancy ? 'Modifier un poste prévu' : 'Prévoir un poste'} subtitle={`${unit?.nom ?? ''} · ${here} salarié(s) rattaché(s)`} close={env.close}
+      onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit={(!!post || !!name.trim()) && Number(count) >= 1}>
+      <L t="Poste" hint="Le nombre de postes à pourvoir = effectif prévu − salariés de l’unité ayant ce poste.">
+        <select className="org-input" value={post} onChange={(e) => { setPost(e.target.value); setName('') }} autoFocus disabled={!!vacancy}>
+          <option value="">— choisir —</option>
+          {data.postes.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
+        </select>
+      </L>
+      {!vacancy && <L t="ou créer un nouveau poste"><input className="org-input" value={name} onChange={(e) => { setName(e.target.value); if (e.target.value) setPost('') }} placeholder="Ex. Technicien de maintenance" /></L>}
+      <L t="Effectif prévu"><input className="org-input" type="number" min={1} max={500} value={count} onChange={(e) => setCount(e.target.value)} required /></L>
+      <Note value={note} onChange={setNote} />
+    </Shell>
+  )
+}
+
+function VacancyDeleteForm({ env, vacancy }: { env: Env; vacancy: OrgVacancy }) {
+  const save = useAction(async () => unwrap(await db.rpc('org_delete_position', { p_id: vacancy.id })), env, () => `Poste prévu « ${vacancy.poste} » supprimé (les salariés en poste ne sont pas touchés).`)
+  return (
+    <Shell title={`Supprimer le poste prévu « ${vacancy.poste} »`} close={env.close} onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit label="Supprimer" danger>
+      <p className="text-sm">Seule la prévision d’effectif est retirée ; aucun salarié n’est modifié.</p>
+    </Shell>
+  )
+}
+
+function VacancyFillForm({ env, vacancy }: { env: Env; vacancy: OrgVacancy }) {
+  const { data } = env
+  const unit = data.unites.find((u) => u.id === vacancy.unite)
+  const [emp, setEmp] = useState('')
+  const info = useMemo(() => assignmentInfo(data), [data])
+  const save = useAction(async () => {
+    unwrap(await db.rpc('org_attach_to_unit', { p_employee: emp, p_unit: vacancy.unite, p_link_head: false }))
+    return unwrap(await db.rpc('org_set_employee_post', { p_employee: emp, p_post: vacancy.poste_id }))
+  }, env, () => `${person(data, emp) ? fullName(person(data, emp)!) : 'Le salarié'} occupe le poste « ${vacancy.poste} » (${unit?.nom ?? ''}).`, { structure: true })
+  return (
+    <Shell title={`Pourvoir « ${vacancy.poste} »`} subtitle={`${unit?.nom ?? ''} · ${vacancy.vacants} à pourvoir sur ${vacancy.prevus}`} close={env.close}
+      onSubmit={() => save.mutate()} pending={save.isPending} error={save.error} canSubmit={!!emp} label="Pourvoir le poste">
+      <L t="Salarié" hint="Le salarié est rattaché à l’unité et reçoit ce poste ; son manager actuel n’est pas modifié.">
+        <PersonSelect people={data.noeuds} value={emp} onChange={setEmp} autoFocus
+          exclude={new Set(data.noeuds.filter((p) => p.unite === vacancy.unite && p.poste_id === vacancy.poste_id).map((p) => p.id))}
+          hint={(p) => (p.unite ? `déjà dans ${data.unites.find((u) => u.id === p.unite)?.nom ?? 'une unité'}` : info.get(p.id)?.manager ? `sous ${info.get(p.id)!.manager}` : null)} />
+      </L>
+    </Shell>
+  )
+}
+
 export function OrgDialogs({ dialog, data, asOf, onClose, onDone }: { dialog: Dialog; data: OrgData; asOf: string; onClose: () => void; onDone: (message: string | null, opts?: DoneOpts) => void }) {
   const env: Env = { data, asOf, close: onClose, done: onDone }
   switch (dialog.kind) {
@@ -387,5 +449,8 @@ export function OrgDialogs({ dialog, data, asOf, onClose, onDone }: { dialog: Di
     case 'team-add': return <TeamAddForm env={env} employeeId={dialog.employeeId} />
     case 'team-remove': return <TeamRemoveForm env={env} teamId={dialog.teamId} employeeId={dialog.employeeId} />
     case 'team-new': return <TeamNewForm env={env} />
+    case 'vacancy': return <VacancyForm env={env} unitId={dialog.unitId} vacancy={dialog.vacancy} />
+    case 'vacancy-delete': return <VacancyDeleteForm env={env} vacancy={dialog.vacancy} />
+    case 'vacancy-fill': return <VacancyFillForm env={env} vacancy={dialog.vacancy} />
   }
 }

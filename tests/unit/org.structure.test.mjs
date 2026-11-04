@@ -72,3 +72,19 @@ test('affectations : manager, équipes et unité de chaque salarié (pour colore
   assert.equal(info.get('c').unit, 'Secteur A1')
   assert.equal(info.get('d').unit, null)
 })
+
+test('postes ouverts : une carte « à pourvoir » sous l\'unité, total sur l\'unité, rien si tout est pourvu', () => {
+  const d = base()
+  d.vacants = [
+    { id: 'p1', unite: 'd1', poste_id: 'x', poste: 'Technicien', prevus: 3, pourvus: 1, vacants: 2, note: null },
+    { id: 'p2', unite: 'd1', poste_id: 'y', poste: 'Comptable', prevus: 1, pourvus: 1, vacants: 0, note: null },
+  ]
+  const { nodes } = org.buildStructureTree(d)
+  const v = nodes.get('v:p1')
+  assert.equal(v.kind, 'vacant')
+  assert.equal(v.parent, 'u:d1')
+  assert.equal(nodes.has('v:p2'), false)
+  assert.equal(nodes.get('u:d1').sub, '2 postes à pourvoir')
+  assert.equal(org.openPositions(d, 'd1').length, 2)
+  assert.equal(org.layout(nodes, org.visibleIds(nodes, new Set())).size, org.visibleIds(nodes, new Set()).size)
+})

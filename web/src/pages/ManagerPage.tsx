@@ -6,6 +6,7 @@ import { Badge, Empty, ErrorNote, PageHeader, Spinner } from '../components/ui'
 import { REQUEST_TYPES, type EmployeeRequest } from '../lib/requests'
 import { DelegationPanel, LeaveApprovals } from '../components/LeaveApprovals'
 import { TeamCalendar } from '../components/TeamCalendar'
+import { TeamBalances } from '../components/TeamBalances'
 
 const db = dataApi as unknown as ApiClient
 type Assignment = {
@@ -46,6 +47,8 @@ export default function ManagerPage() {
     employee: Array.isArray(assignment.employee) ? assignment.employee[0] ?? null : assignment.employee,
   }))
 
+  const team = activeEmployees.map((a) => ({ id: a.employee_id, name: `${a.employee?.first_name ?? ''} ${a.employee?.last_name ?? ''}`.trim() }))
+
   return (
     <>
       <PageHeader title="Mon équipe" description="Suivi des salariés qui vous sont délégués ; validation de leurs congés (avant la RH)." />
@@ -56,7 +59,8 @@ export default function ManagerPage() {
         <Empty title="Aucune équipe active">Le service RH ne vous a pas encore affecté de salarié sur la période courante.</Empty>
       ) : (
         <>
-        <TeamCalendar members={activeEmployees.map((a) => ({ id: a.employee_id, name: `${a.employee?.first_name ?? ''} ${a.employee?.last_name ?? ''}`.trim() }))} />
+        <TeamCalendar members={team} />
+        <TeamBalances members={team} />
         <section className="panel mb-6">
           <div className="border-b border-line px-4 py-3"><h2 className="text-base">Salariés affectés</h2></div>
           <ul className="divide-y divide-line/70">

@@ -3,11 +3,11 @@ import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, ReactFlowP
 import '@xyflow/react/dist/style.css'
 import './organigramme.css'
 import './organigramme-actions.css'
-import { CARD_H, CARD_W, GROUP_ID, LINK_LABEL, ROOT_ID, chainOf, descendantsCount, layout, visibleIds, type LinkType, type OrgData, type ViewNode } from '../../lib/org'
-import { GroupNode, OrgEdge, PersonNode, RootNode, UnitNode } from './OrgNodes'
+import { CARD_H, CARD_W, GROUP_ID, LINK_LABEL, ROOT_ID, unitNodeId, chainOf, descendantsCount, layout, visibleIds, type LinkType, type OrgData, type ViewNode } from '../../lib/org'
+import { GroupNode, OrgEdge, PersonNode, RootNode, UnitNode, VacantNode } from './OrgNodes'
 import { OrgContext, type CardData, type EdgeData, type OrgCtx } from './orgContext'
 
-const nodeTypes = { person: PersonNode, root: RootNode, unit: UnitNode, unattached: GroupNode } // « group » est un type réservé de React Flow
+const nodeTypes = { person: PersonNode, root: RootNode, unit: UnitNode, vacant: VacantNode, unattached: GroupNode } // « group » est un type réservé de React Flow
 const edgeTypes = { org: OrgEdge }
 
 /** Canevas React Flow : disposition sur la hiérarchie seulement, liens hors hiérarchie dessinés par-dessus. */
@@ -95,7 +95,7 @@ function Inner({ data, tree, collapsed, onToggle, selectedId, onSelect, matches,
       case 'ArrowUp': next = v.parent ?? undefined; break
       case 'ArrowRight': next = siblings[idx + 1]; break
       case 'ArrowLeft': next = idx > 0 ? siblings[idx - 1] : undefined; break
-      case 'Enter': if (v.kind === 'person' || v.kind === 'unit') onSelect(id); e.preventDefault(); return
+      case 'Enter': if (v.kind === 'person' || v.kind === 'unit') onSelect(id); else if (v.kind === 'vacant') onSelect(unitNodeId(v.vacancy!.unite)); e.preventDefault(); return
       case ' ': if (v.children.length) toggleKeep(id); e.preventDefault(); return
       case 'Escape': onSelect(null); return
       default: return
@@ -110,7 +110,7 @@ function Inner({ data, tree, collapsed, onToggle, selectedId, onSelect, matches,
   const ctx = useMemo<OrgCtx>(() => ({
     selectedId, chain, matches, collapsed, personName,
     hidden: (id) => descendantsCount(tree, id),
-    canEdit, onToggle: toggleKeep, onSelect: (id) => onSelect(id), onHover: setHover, onKey, onMenu,
+    canEdit, onToggle: toggleKeep, onSelect: (id) => { const v = tree.get(id); onSelect(v?.kind === 'vacant' ? unitNodeId(v.vacancy!.unite) : id) }, onHover: setHover, onKey, onMenu,
   }), [selectedId, chain, matches, collapsed, personName, tree, canEdit, toggleKeep, onSelect, onKey, onMenu])
 
   // fin d'un glisser depuis une poignée : la carte visée est celle qui se trouve sous le pointeur (poignée ou corps de carte)
