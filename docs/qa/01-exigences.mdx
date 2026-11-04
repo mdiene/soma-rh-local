@@ -1,0 +1,91 @@
+---
+title: "01 — Exigences, risques et traçabilité"
+description: "Rôles, personas, parcours critiques, catalogue des cas d'usage et traçabilité exigences vers tests."
+---
+
+## Objectif et périmètre
+
+Fixer ce que la campagne doit prouver : exactitude de la paie, isolation par rôle, workflow de validation, protection des données, règlement. Périmètre : application complète, cinq rôles, base `soma_rh`.
+
+## Rôles et droits (mesurés dans la base)
+
+La base contient 56 tables, toutes avec RLS, et 157 politiques. Comptes de test existants : admin 2, rh 4, paie 3, manager 3, salarié 5. La matrice complète rôles × tables sera produite en phase 5 à partir de `pg_policies`.
+
+| Rôle | Fait | Ne fait pas |
+|---|---|---|
+| admin | valide, clôture, rouvre, annule une paie ; gère les rôles | prépare et approuve la même paie (I4) |
+| rh | prépare et calcule ; gère salariés, congés, présences | modifie taux, barèmes, rubriques ; valide |
+| paie | prépare et calcule ; règlements | valide |
+| manager | valide les congés de son équipe (premier niveau) | voit les salaires |
+| salarié | consulte ses bulletins validés, présences, congés, demandes | voit les données d'un autre salarié |
+
+## Personas
+
+RH de PME (saisie et congés), comptable (paie et règlement), admin ou DAF (validation), gardien en rotation (planning 24/24), manager (validation d'équipe), salarié sur mobile (bulletins et demandes).
+
+## Parcours critiques et niveau de risque
+
+| Parcours | Risque | Gravité si défaillant |
+|---|---|---|
+| Paie mensuelle : variables, calcul, contrôles, validation, règlement | argent faux | S1 |
+| Isolation par rôle (RLS) | fuite de données | S1 |
+| Départ : indemnités et solde de congés | argent faux | S1 |
+| Garde de période et validation | écriture sur mois clos | S2 |
+| Congés à deux niveaux et délégation | droits et soldes | S2 |
+| Rotation 24/24 et heures supplémentaires | argent faux | S2 |
+| Organigramme et équipes | droits indirects | S2 |
+| Pilotage, prévision, analyses | décision erronée | S3 |
+
+## Catalogue des cas d'usage
+
+| UC | Titre | Acteur | Invariants | Règles |
+|---|---|---|---|---|
+| UC-001 | Paie mensuelle de bout en bout | paie, admin | I3 I4 I5 I8 I9 I19 | RL-001 à RL-009 |
+| UC-002 | Embauche et premier bulletin | rh | I2 I10 | RL-011 |
+| UC-003 | Départ avec indemnités et solde de congés | rh, admin | I6 | RL-014, RL-017 |
+| UC-004 | Renouvellement et fin de CDD | rh | I2 | RL-013, RL-017 |
+| UC-005 | Demande de congé à deux niveaux avec délégation | salarié, manager, rh | I1 | RL-017 |
+| UC-006 | Heures supplémentaires et rotation des gardiens | rh | I1 I2 | RL-012 |
+| UC-007 | Acompte | salarié, paie | I7 I20 | RL-016 |
+| UC-008 | Demande d'attestation | salarié, rh | I10 | néant |
+| UC-009 | Correction de présence | rh | I2 I10 | néant |
+| UC-010 | Règlement et billetage | paie | I8 | néant |
+| UC-011 | Validation et réouverture par l'admin | admin | I3 I4 I15 | néant |
+| UC-012 | Gestion des rôles | admin | I11 | néant |
+| UC-013 | Revue du journal d'audit | admin | I10 I16 I18 | néant |
+| UC-014 | Organigramme et équipes | rh | I11 | néant |
+| UC-015 | Prévision de masse salariale | admin | I14 | RL-018 |
+| UC-016 | Synthèse annuelle | admin, paie | I13 | RL-001 à RL-009 |
+| UC-017 | Sauvegarde et restauration | admin | I17 | néant |
+
+## Traçabilité exigences vers tests
+
+| Exigence | Règle | UC | Test existant | Test à créer |
+|---|---|---|---|---|
+| Un bulletin respecte les taux et plafonds en vigueur | RL-001 à RL-009 | UC-001 | `verify-payroll.ps1` (empreinte interne) | oracle O-RL001 à O-RL009 |
+| Un recalcul ne change rien (idempotence) | néant | UC-001 | néant | T-I19 |
+| Mois clos non modifiable | néant | UC-011 | `payroll_separation.sql` | T-I15 |
+| Préparateur différent de l'approbateur | néant | UC-011 | `payroll_separation.sql` | T-I4 |
+| Réouverture et annulation par l'admin seul | néant | UC-011 | `payroll_revert.sql` | T-I4 |
+| Journal d'audit chaîné et intact | néant | UC-013 | `audit_chain.sql` | T-I18 |
+| Ajustements et régularisation | néant | UC-001 | `l2_adjustments.sql` | T-I6, T-I7 |
+| Congés à deux niveaux | RL-017 | UC-005 | `l6_conges.sql` | T-I1 |
+| Règlement : total des ordres égal total des nets | néant | UC-010 | `l8_reglement.sql` | T-I8 |
+| Organigramme : droits et date d'effet | néant | UC-014 | `organigramme.sql`, `org.layout.test.mjs` | T-I11 |
+| Isolation par rôle sur toutes les tables | néant | UC-012 | `auth_usage.sql` (partiel) | T-I11 complet |
+| Paramètres légaux datés | RL-018 | UC-015 | néant | T-I14 : bascule avant et après une date |
+| Aucune donnée personnelle dans Git | néant | UC-017 | `scan-pii.sh` | T-I17 |
+
+## Constats
+
+| ID | Gravité | Constat |
+|---|---|---|
+| C-001 | S2 | RL-010 : le SMIG horaire en base (370,526) diffère du décret 2023-1710 cité (environ 433). À confirmer avant toute correction. |
+| C-002 | S2 | RL-005 : le taux d'accident du travail est unique (5 %) alors qu'il dépend du risque notifié par la CSS. |
+| C-003 | S3 | Aucun test ne vérifie une bascule de paramètres légaux entre deux dates (T-I14). |
+| C-004 | S3 | La couverture de l'isolation par rôle est partielle (un seul script SQL). |
+| C-005 | S4 | Les documents `PLAN_CONTROLE_QUALITE` et `LOCAL_TEST_MATRIX` citent encore des chiffres de référence Excel obsolètes. |
+
+## Ce que cela change pour les utilisateurs
+
+Les taux IPRES, CSS, IR et le SMIG sont appliqués mais **pas encore confirmés par un texte officiel**. Avant une paie réelle, le comptable doit attester ces valeurs (voir le registre légal).

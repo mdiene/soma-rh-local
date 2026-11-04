@@ -434,9 +434,9 @@ L’IA peut adapter cette arborescence si le dépôt possède déjà des convent
 
 ## 4. Fichiers de référence du dépôt source
 
-- [README.md](../README.md)
+- README.md
 - [ANALYSE_EXCEL.md](./ANALYSE_EXCEL.md)
 - [PLAN_EVOLUTION_SOMA_RH.md](./PLAN_EVOLUTION_SOMA_RH.md)
 - [AUDIT_COMMERCIALISATION_SOMA_RH.md](./AUDIT_COMMERCIALISATION_SOMA_RH.md)
-- [CLAUDE.md](../CLAUDE.md)
+- CLAUDE.md
 

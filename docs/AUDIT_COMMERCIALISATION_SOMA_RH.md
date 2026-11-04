@@ -59,7 +59,7 @@ La différenciation défendable est la combinaison suivante :
 
 ### 2.1 Sources examinées
 
-- [`README.md`](../README.md) : périmètre fonctionnel, architecture, migrations et correspondance Frappe HR.
+- `README.md` : périmètre fonctionnel, architecture, migrations et correspondance Frappe HR.
 - [`docs/ANALYSE_EXCEL.md`](./ANALYSE_EXCEL.md) : 13 feuilles Excel, 114 colonnes de calcul, macros VBA, anomalies et validation d’août 2026.
 - [`docs/PLAN_EVOLUTION_SOMA_RH.md`](./PLAN_EVOLUTION_SOMA_RH.md) : plan d’évolution existant, workflows cibles et tickets P0/P1/P2.
 - `web/src/` : routes, écrans, accès, requêtes Supabase, états et impressions.

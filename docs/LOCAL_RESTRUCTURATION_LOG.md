@@ -90,7 +90,7 @@ Chaque phase doit ajouter ses commandes, résultats, écarts et décisions dans 
 
 ### Livraisons
 
-- ajout de l'écran [`PayrollGovernancePage.tsx`](../web/src/pages/PayrollGovernancePage.tsx) ;
+- ajout de l'écran `PayrollGovernancePage.tsx` ;
 - ajout de la route `/paie/gouvernance` et du lien de navigation « Contrôle et clôture » ;
 - affichage des traitements, progression des statuts, anomalies et approbations ;
 - transitions déclenchées uniquement par `transition_payroll_entry` ;
@@ -112,7 +112,7 @@ La validation navigateur Playwright n'a pas pu être exécutée dans cet environ
 
 ### Corrections
 
-- ajout de la migration [`20261031185300_local_auth_compatibility.sql`](../supabase/migrations/20261031185300_local_auth_compatibility.sql) ;
+- ajout de la migration `20261031185300_local_auth_compatibility.sql` ;
 - remplacement de la lecture de `auth.users.last_sign_in_at`, colonne absente de l'auth locale, par une valeur nulle compatible avec l'interface ;
 - attribution idempotente des rôles `admin`, `rh`, `paie` et `salarie` au compte `mdiene@gmail.com` ;
 - mise à jour du type frontend pour accepter une dernière connexion nulle.
@@ -140,7 +140,7 @@ local `auth`, ce qui provoquait `permission denied for schema auth`.
 
 ### Correction
 
-- ajout de [`20261031185900_payroll_rpc_security_definer.sql`](../supabase/migrations/20261031185900_payroll_rpc_security_definer.sql) ;
+- ajout de `20261031185900_payroll_rpc_security_definer.sql` ;
 - passage des trois RPC en `SECURITY DEFINER` ;
 - conservation des contrôles métier `has_role(...)` et de l'acteur `auth.uid()` ;
 - aucun privilège direct accordé à `authenticated` sur le schéma `auth`.
@@ -157,14 +157,14 @@ local `auth`, ce qui provoquait `permission denied for schema auth`.
 
 ### Cause complémentaire
 
-Le bouton « Valider la paie » de [`PayrollEntryPage.tsx`](../web/src/pages/PayrollEntryPage.tsx)
+Le bouton « Valider la paie » de `PayrollEntryPage.tsx`
 appelait encore `submit_payroll_entry`, et non la nouvelle RPC de gouvernance.
 Cette ancienne fonction était restée en `SECURITY INVOKER` et appelait `auth.uid()`
 dans le contexte `authenticated`, d'où la même erreur de permission.
 
 ### Correction
 
-- ajout de [`20261031190200_legacy_payroll_rpc_security.sql`](../supabase/migrations/20261031190200_legacy_payroll_rpc_security.sql) ;
+- ajout de `20261031190200_legacy_payroll_rpc_security.sql` ;
 - passage de `submit_payroll_entry` et `cancel_payroll_entry` en `SECURITY DEFINER` ;
 - conservation des contrôles de rôle et des droits `EXECUTE` limités à `authenticated`.
 
@@ -198,7 +198,7 @@ et de sécurité RPC ont été conservées.
   `PilotagePage`, `PlanningPage` et `JournalPage` ;
 - composants de paiement, prévision, attestations et extensions du traitement ;
 - migrations GitHub des lots 0, 1, 2, 3, 5 et 6 ;
-- migration locale [`20261031191500_feature_compatibility.sql`](../supabase/migrations/20261031191500_feature_compatibility.sql)
+- migration locale `20261031191500_feature_compatibility.sql`
   pour rendre la génération de rotations compatible avec les tables déjà présentes ;
 - maintien de l'écran local de gouvernance `/paie/gouvernance`.
 
@@ -235,7 +235,7 @@ demandes salariés.
 
 ### Correction
 
-- ajout de [`20261031192400_payroll_feature_rpc_security.sql`](../supabase/migrations/20261031192400_payroll_feature_rpc_security.sql) ;
+- ajout de `20261031192400_payroll_feature_rpc_security.sql` ;
 - passage de `payroll_entry_comparison`, `hr_analytics`, `generate_rotation` et
   `salary_payments_touch` en `SECURITY DEFINER` ;
 - notification `pgrst, 'reload schema'` envoyée après la migration ;

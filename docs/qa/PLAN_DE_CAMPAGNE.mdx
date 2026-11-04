@@ -1,0 +1,63 @@
+---
+title: "Plan de campagne détaillé"
+description: "Étapes, livrables, critères de sortie et état d'avancement des 13 phases."
+---
+
+Ce plan détaille le prompt. Chaque phase produit un rapport `NN-*.mdx`, des tests rejouables et un commit. Une phase n'est « terminée » que si son critère de sortie est vérifié.
+
+## Avancement
+
+| Phase | Contenu | Critère de sortie | État |
+|---|---|---|---|
+| 0 | Analyse préalable, sauvegarde, base de référence | Sauvegarde lisible, lint, build, empreinte et tests SQL verts | **Fait** |
+| 1 | Exigences, personas, registre légal initial, catalogue UC, traçabilité | Chaque invariant I1-I20 relié à une règle et à un test | À faire |
+| 2 | Stratégie de test par risque et par stade | Matrice des risques, critères d'entrée/sortie, gravités S1-S4 | À faire |
+| 3 | Environnement et usine de données | 4 scénarios rejouables avec graine fixe ; `qa-reset-scenario.ps1` ; comptes de test | À faire |
+| 4 | Cas de test et cas limites | Cas avec ID, exigence, données, automatisé ou manuel | À faire |
+| 5 | Tests fonctionnels et isolation par rôle | Matrice rôles × tables/fonctions, 0 accès hors périmètre | À faire |
+| 6 | API et intégration | Chaque fonction RPC et route Node testée (nominal, rôle, jeton, concurrence) | À faire |
+| 7 | Performance | Tableau salariés vers temps, premier goulot | À faire |
+| 8 | Sécurité et confidentialité | Audit SQL maison, OWASP, `npm audit`, Docker | À faire |
+| 9 | Utilisabilité et accessibilité | axe sans violation grave, formats fr | À faire |
+| 10 | CI et non-régression | `ci.yml` bloque sur SQL, oracle, Playwright | À faire |
+| 11 | Recette, défauts, reprise après sinistre | Scripts de recette, RTO et RPO mesurés | À faire |
+| 12 | Surveillance | Tâches planifiées et indicateurs | À faire |
+| 13 | Benchmark Sage et Frappe HR | `docs/comparatif/` et backlog | À faire |
+
+## Étapes détaillées par phase
+
+### Phase 1 : exigences et registre légal
+1. Extraire les rôles et droits depuis les politiques RLS réelles (`pg_policies`), pas depuis la documentation.
+2. Dresser le catalogue des 17 UC minimum et leurs acteurs.
+3. Relier chaque invariant I1-I20 à une exigence, une règle légale (`RL-xxx`), un UC et un test T-Ix.
+4. Recherche web des règles : IR (barème, parts), TRIMF, IPRES général et cadres, CSS, CFCE, heures supplémentaires, préavis, indemnités, congés, SMIG. URL, article et date notés ; sinon « à confirmer ».
+5. Comparer chaque règle à la valeur en base (`payroll_settings`, `tax_slabs`) : statut conforme, écart ou à confirmer.
+
+### Phase 3 : usine de données
+1. Générateur TypeScript déterministe dans `tests/fixtures/qa/`, graine fixe, noms fictifs, matricules `QA0001…`.
+2. Scénarios `pme-25`, `pme-80`, `eti-200`, `grande-1000`, chargés par `scripts/qa-reset-scenario.ps1 -Scenario nom`.
+3. Comptes de test par rôle avec mot de passe jetable lu dans l'environnement, jamais commité.
+4. Avant chaque rechargement : sauvegarde, entrée dans `registre-donnees-de-test`.
+5. Installer Playwright (Chromium d'abord ; Firefox et WebKit si le téléchargement aboutit).
+
+### Phases 4 à 6 : tests
+1. Oracle indépendant dans `tests/oracle/`, écrit depuis le registre légal, sans lire le PL/pgSQL.
+2. Comparaison différentielle sur plusieurs milliers de cas ; chaque écart tranché d'après le texte.
+3. Tests SQL par rôle avec `set local role` et JWT simulé, dans des transactions annulées.
+4. Tests de concurrence : deux sessions `psql` simultanées sur le même traitement.
+
+### Phases 7 à 9 : qualité non fonctionnelle
+1. Chronométrer calcul, livre de paie, planning et analyses sur les quatre scénarios ; `EXPLAIN ANALYZE`.
+2. Contrôles de sécurité en SQL versionné dans `tests/sql/` ; `npm audit` ; ports Docker.
+3. axe via Playwright sur les pages principales.
+
+### Phases 10 à 13 : pérennisation
+1. Étendre `ci.yml` par étapes, chaque étape ajoutée seulement quand elle passe en local.
+2. Recette en français courant, journal des défauts, test de restauration chronométré.
+3. Benchmark : partir de `ANALYSE_SAGE_PAIE_RH_VS_SOMA_RH` et le vérifier avec les résultats.
+
+## Limites assumées
+
+- Outils absents (k6, OWASP ZAP, Snyk, WebKit, `mint`) : installation tentée, sinon étape marquée bloquée.
+- Aucun chiffre légal n'est modifié dans le moteur sans source datée et décision du propriétaire.
+- Les analyses de montée en charge sont mesurées sur cette machine, pas sur un serveur de production.

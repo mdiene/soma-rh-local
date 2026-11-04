@@ -32,7 +32,7 @@ Le principal enjeu n'est donc pas de remplacer le moteur existant, mais de const
 
 ### 1.1 Sources locales analysées
 
-- [`README.md`](../README.md) : modules, routes fonctionnelles, migrations et correspondance Frappe HR.
+- `README.md` : modules, routes fonctionnelles, migrations et correspondance Frappe HR.
 - [`docs/ANALYSE_EXCEL.md`](./ANALYSE_EXCEL.md) : 13 feuilles Excel, 114 colonnes de calcul, macros VBA, règles fiscales/sociales et écarts connus.
 - `web/src/pages/` : écrans actuels de tableau de bord, salariés, congés, présences, variables, paie, bulletins, états, paramètres et simulateur.
 - `supabase/migrations/` : schéma RH/paie, RLS, moteur, états, audit, référentiels, présences et corrections manuelles.

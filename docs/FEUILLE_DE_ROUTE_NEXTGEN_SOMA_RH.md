@@ -70,7 +70,7 @@ documentée. Toute divergence non expliquée est **NO-GO**.
 
 1. Définir la fixture et le périmètre actifs des tests d'août 2026.
 2. Ajouter la régression paie au workflow CI existant, qui ne lance aujourd'hui
-   que lint et build ([.github/workflows/ci.yml](../.github/workflows/ci.yml)).
+   que lint et build (.github/workflows/ci.yml).
 3. Ajouter tests de migration, restauration et idempotence.
 4. Ajouter scan de dépendances et seuil de vulnérabilités.
 5. Documenter une sauvegarde/restauration réellement rejouée.

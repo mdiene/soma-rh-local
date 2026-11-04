@@ -1,14 +1,32 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Docs",
+  "name": "SOMA-RH",
   "colors": {
     "primary": "#16A34A"
   },
   "navigation": {
     "groups": [
       {
-        "group": "Introduction",
+        "group": "Règles de paie",
+        "pages": [
+          "regles-de-paie/registre-legal"
+        ]
+      },
+      {
+        "group": "Qualité et tests",
+        "pages": [
+          "qa/PLAN_DE_CAMPAGNE",
+          "qa/00-analyse-prealable",
+          "qa/01-exigences",
+          "qa/registre-donnees-de-test",
+          "PROMPT_CAMPAGNE_TESTS_SOMA_RH",
+          "PLAN_CONTROLE_QUALITE_SOMA_RH",
+          "LOCAL_TEST_MATRIX"
+        ]
+      },
+      {
+        "group": "Projet et décisions",
         "pages": [
           "ANALYSE_COMPARATIVE_CIBLE_VS_EXISTANT",
           "ANALYSE_EXCEL",
@@ -25,8 +43,6 @@
           "LOCAL_PAYROLL_VALIDATION",
           "LOCAL_RESTRUCTURATION_LOG",
           "LOCAL_SETUP",
-          "LOCAL_TEST_MATRIX",
-          "PLAN_CONTROLE_QUALITE_SOMA_RH",
           "PLAN_EVOLUTION_SOMA_RH",
           "PROMPT_ANALYSE_ET_FEUILLE_DE_ROUTE_SOMA_RH",
           "PROMPT_RESTRUCTURATION_LOCALE_SOMA_RH",

@@ -33,18 +33,18 @@ Le dépôt contient 48 migrations SQL. Un comptage textuel des déclarations don
 | Vues déclarées dans les migrations | 0 trouvé par ce motif | les fonctions de reporting existent ; l'existence effective en base reste à interroger |
 
 Ces nombres sont des déclarations dans les fichiers, non un `pg_catalog` de la base démarrée.
-Les migrations initiales créent le cœur RH et paie ([20261028170000_core_hr.sql](../supabase/migrations/20261028170000_core_hr.sql):23-210,
-[20261028170100_payroll_schema.sql](../supabase/migrations/20261028170100_payroll_schema.sql):10-265).
+Les migrations initiales créent le cœur RH et paie (20261028170000_core_hr.sql:23-210,
+20261028170100_payroll_schema.sql:10-265).
 
 ### 2.2 Autorisation et RLS
 
 - Rôles applicatifs réellement déclarés : `admin`, `rh`, `paie`, `salarie`
-  ([20261028170200_security_rls.sql](../supabase/migrations/20261028170200_security_rls.sql):7-18).
+  (20261028170200_security_rls.sql:7-18).
 - Fonctions d'autorisation constatées : `has_role(text[])`, `my_employee_id()` et
-  `claim_first_admin()` ([20261028170200_security_rls.sql](../supabase/migrations/20261028170200_security_rls.sql):20-60).
-- `has_role` traite `admin` comme rôle englobant ([20261028170200_security_rls.sql](../supabase/migrations/20261028170200_security_rls.sql):20-35).
-- RLS activée sur les tables cœur et paie ([20261028170200_security_rls.sql](../supabase/migrations/20261028170200_security_rls.sql):66-90).
-- Plusieurs référentiels utilisent `using (true)` en lecture ([20261028170200_security_rls.sql](../supabase/migrations/20261028170200_security_rls.sql):102-126). C'est cohérent avec une seule société, mais ce n'est pas une isolation par `company_id`.
+  `claim_first_admin()` (20261028170200_security_rls.sql:20-60).
+- `has_role` traite `admin` comme rôle englobant (20261028170200_security_rls.sql:20-35).
+- RLS activée sur les tables cœur et paie (20261028170200_security_rls.sql:66-90).
+- Plusieurs référentiels utilisent `using (true)` en lecture (20261028170200_security_rls.sql:102-126). C'est cohérent avec une seule société, mais ce n'est pas une isolation par `company_id`.
 - Aucun `FORCE ROW LEVEL SECURITY` n'a été trouvé dans les migrations recherchées.
 - Les politiques utilisent souvent `WITH CHECK` pour les écritures, mais aucune fonction `app.can()`,
   `app.current_roles()`, `app.current_employee()`, `app.is_my_report()` ou `app.mfa_active()` n'a été trouvée dans le dépôt.
@@ -55,9 +55,9 @@ RLS forcée ne sont pas livrés.
 ### 2.3 Sociétés et colonnes d'organisation
 
 `companies.id` est référencé par `departments`, `employees`, `salary_structures`,
-`payroll_entries` et `payroll_periods` ([20261028170000_core_hr.sql](../supabase/migrations/20261028170000_core_hr.sql):23-49,83-134;
-[20261028170100_payroll_schema.sql](../supabase/migrations/20261028170100_payroll_schema.sql):94-101,175-193;
-[20261031190000_payroll_period_governance.sql](../supabase/migrations/20261031190000_payroll_period_governance.sql):6-24).
+`payroll_entries` et `payroll_periods` (20261028170000_core_hr.sql:23-49,83-134;
+20261028170100_payroll_schema.sql:94-101,175-193;
+20261031190000_payroll_period_governance.sql:6-24).
 
 `tenant_id` n'a pas été trouvé dans les migrations. Il n'y a pas de preuve d'un modèle
 multi-tenant actuel. Cela confirme le périmètre mono-société des phases 1 à 4.
@@ -65,15 +65,15 @@ multi-tenant actuel. Cela confirme le périmètre mono-société des phases 1 à
 ### 2.4 Audit et traçabilité
 
 - `audit_log` est créé par le lot matricule, avec RLS de lecture
-  ([20261029160000_lot6_matricule.sql](../supabase/migrations/20261029160000_lot6_matricule.sql):15-33).
+  (20261029160000_lot6_matricule.sql:15-33).
 - `business_audit()` écrit `table_name`, `record_id`, `record_key`, `action`,
-  `old_data` et `new_data` ([20261030150000_lot0_audit_et_garde_periodes.sql](../supabase/migrations/20261030150000_lot0_audit_et_garde_periodes.sql):12-43).
+  `old_data` et `new_data` (20261030150000_lot0_audit_et_garde_periodes.sql:12-43).
 - Les triggers du lot 0 couvrent `employees`, `salary_structure_assignments`, `payroll_inputs`,
   `additional_salaries`, `attendance`, `leave_applications`, `salary_slips`,
   `payroll_entries`, `payroll_settings` et `user_roles`
-  ([20261030150000_lot0_audit_et_garde_periodes.sql](../supabase/migrations/20261030150000_lot0_audit_et_garde_periodes.sql):45-59).
+  (20261030150000_lot0_audit_et_garde_periodes.sql:45-59).
 - `audit_events` est une seconde table de transitions de paie
-  ([20261031190000_payroll_period_governance.sql](../supabase/migrations/20261031190000_payroll_period_governance.sql):102-129).
+  (20261031190000_payroll_period_governance.sql:102-129).
 - Aucun `hash`, `previous_hash`, `audit_chain`, `audit_verify()` ou mécanisme WORM n'a été trouvé.
 
 **État :** l'affirmation du document « audit non chaîné » est confirmée ; l'affirmation
@@ -84,43 +84,43 @@ dans la boucle de triggers du lot 0.
 
 Statuts de `payroll_entries` : `Brouillon`, `Calculée`, `En revue`, `Approuvée`,
 `Validée`, `Payée`, `Clôturée`, `Réouverte`, `Annulée`
-([20261031190000_payroll_period_governance.sql](../supabase/migrations/20261031190000_payroll_period_governance.sql):35-43).
+(20261031190000_payroll_period_governance.sql:35-43).
 
 Garde-fous constatés :
 
 - garde des mois futurs et des mois précédents non validés
-  ([20261030150000_lot0_audit_et_garde_periodes.sql](../supabase/migrations/20261030150000_lot0_audit_et_garde_periodes.sql):49-82) ;
+  (20261030150000_lot0_audit_et_garde_periodes.sql:49-82) ;
 - interdiction des `UPDATE` directs de statut
-  ([20261031192000_payroll_transition_guard.sql](../supabase/migrations/20261031192000_payroll_transition_guard.sql):3-18) ;
+  (20261031192000_payroll_transition_guard.sql:3-18) ;
 - transitions contrôlées par `transition_payroll_entry`
-  ([20261031192000_payroll_transition_guard.sql](../supabase/migrations/20261031192000_payroll_transition_guard.sql):20-83) ;
+  (20261031192000_payroll_transition_guard.sql:20-83) ;
 - anomalies, approbations, snapshot et audit de transition
-  ([20261031190000_payroll_period_governance.sql](../supabase/migrations/20261031190000_payroll_period_governance.sql):62-129) ;
+  (20261031190000_payroll_period_governance.sql:62-129) ;
 - contrôle `payroll_entry_checks` et blocage UI/SQL ajouté récemment
-  ([20261030170000_lot1_gouvernance_paie.sql](../supabase/migrations/20261030170000_lot1_gouvernance_paie.sql):33-98,
-  [20261102201000_payroll_validation_guard.sql](../supabase/migrations/20261102201000_payroll_validation_guard.sql):1-31).
+  (20261030170000_lot1_gouvernance_paie.sql:33-98,
+  20261102201000_payroll_validation_guard.sql:1-31).
 
-**Limite vérifiée :** le contrôle local [local-payroll-validation.ps1](../scripts/local-payroll-validation.ps1):35-151
+**Limite vérifiée :** le contrôle local local-payroll-validation.ps1:35-151
 échoue actuellement : 26 bulletins éligibles, au lieu de 25, et totaux différents de la référence.
 Le moteur n'est pas déclaré conforme tant que le roster de référence n'est pas réconcilié.
 
 ### 2.6 Demandes, notifications et managers
 
 - `employee_requests` et les fonctions de décision/annulation existent
-  ([20261030200000_lot2_demandes_salaries.sql](../supabase/migrations/20261030200000_lot2_demandes_salaries.sql):6-35,
-  [20261102131500_phase3_employee_request_workflow.sql](../supabase/migrations/20261102131500_phase3_employee_request_workflow.sql):35-82).
+  (20261030200000_lot2_demandes_salaries.sql:6-35,
+  20261102131500_phase3_employee_request_workflow.sql:35-82).
 - `employee_notifications` et la décision de demande existent
-  ([20261102133000_phase3_request_notifications.sql](../supabase/migrations/20261102133000_phase3_request_notifications.sql):3-32).
+  (20261102133000_phase3_request_notifications.sql:3-32).
 - `employee_manager_assignments`, ses contrôles de chevauchement et ses politiques RLS existent
-  ([20261102140000_phase3_manager_team_scope.sql](../supabase/migrations/20261102140000_phase3_manager_team_scope.sql):8-107).
+  (20261102140000_phase3_manager_team_scope.sql:8-107).
 - Aucun système générique `workflow_definitions`, `workflow_instances`, `workflow_decisions`,
   `approval_delegations` ou `outbox_events` n'a été trouvé.
 
 ### 2.7 Paramètres légaux et moteur
 
 `payroll_settings_at(date)` et `tax_slab_at(date)` existent
-([20261028170300_payroll_engine.sql](../supabase/migrations/20261028170300_payroll_engine.sql):34-62).
-`compute_salary_slip` les appelle ([20261028170300_payroll_engine.sql](../supabase/migrations/20261028170300_payroll_engine.sql):64-250).
+(20261028170300_payroll_engine.sql:34-62).
+`compute_salary_slip` les appelle (20261028170300_payroll_engine.sql:64-250).
 
 Le code prouve donc une lecture de tables paramétrées et datées, pas des constantes
 uniquement en dur. En revanche, ces fonctions ne prennent pas de société/tenant et le
@@ -129,14 +129,14 @@ schéma `rule_sets`/`rule_values` n'existe pas.
 ### 2.8 Documents et stockage
 
 - Les documents privés sont dans `employee_documents`, avec versions, chemin de stockage,
-  miniature et slots familiaux ([20261102173500_phase3_private_documents.sql](../supabase/migrations/20261102173500_phase3_private_documents.sql):3-56,
-  [20261102193000_document_family_slots.sql](../supabase/migrations/20261102193000_document_family_slots.sql):1-35).
+  miniature et slots familiaux (20261102173500_phase3_private_documents.sql:3-56,
+  20261102193000_document_family_slots.sql:1-35).
 - Le catalogue et la revue RH/admin existent
-  ([20261102180000_phase3_admin_document_catalog.sql](../supabase/migrations/20261102180000_phase3_admin_document_catalog.sql):3-20,171-220).
+  (20261102180000_phase3_admin_document_catalog.sql:3-20,171-220).
 - L'API Node sert des URL privées, des miniatures et un bundle PDF
-  ([api/server.mjs](../api/server.mjs):20,85-137,227-264).
+  (api/server.mjs:20,85-137,227-264).
 - Le volume Docker est privé et monté sur `/data/documents`
-  ([docker-compose.yml](../docker-compose.yml):40-52).
+  (docker-compose.yml:40-52).
 - MinIO, verrouillage WORM des bulletins et rétention documentaire n'ont pas été trouvés.
 
 **ERREUR DU DOCUMENT :** la matrice affirme « aucun stockage de fichiers » et le ticket
@@ -146,9 +146,9 @@ WORM des bulletins n'est pas démontré.
 ### 2.9 Tests et CI
 
 - CI GitHub présente : `npm ci`, lint et build frontend
-  ([.github/workflows/ci.yml](../.github/workflows/ci.yml):1-24).
+  (.github/workflows/ci.yml:1-24).
 - Le contrôle de paie existe comme script local, pas comme étape de CI
-  ([scripts/local-payroll-validation.ps1](../scripts/local-payroll-validation.ps1):1-151).
+  (scripts/local-payroll-validation.ps1:1-151).
 - Aucun workflow CI appelant ce script, aucun test de migration PostgreSQL et aucune preuve
   de test automatisé du coffre/documentaire n'a été trouvé.
 
@@ -226,9 +226,9 @@ WORM des bulletins n'est pas démontré.
 
 Le SQL proposé suppose `btree_gist`, `daterange`/`tstzrange`, `positions` et
 `employee_assignments`. `pgcrypto` est explicitement créé dans
-[20261028170000_core_hr.sql](../supabase/migrations/20261028170000_core_hr.sql):8,
+20261028170000_core_hr.sql:8,
 mais `btree_gist` n'est pas trouvé dans les migrations ni dans
-[postgres/Dockerfile](../postgres/Dockerfile):1-8. Le bloc doit donc commencer par
+postgres/Dockerfile:1-8. Le bloc doit donc commencer par
 une vérification d'extension et une migration Expand sans remplacer les tables actuelles.
 La collision principale est le nom `employee_assignments`, à distinguer de
 `employee_manager_assignments`.
@@ -246,7 +246,7 @@ Le SQL est incompatible tel quel avec l'existant car `app.*` n'existe pas et les
 politiques actuelles appellent `public.has_role`. `security definer` exige un
 `search_path` strict, des droits `EXECUTE` minimaux et une protection contre les
 politiques modifiables par un rôle applicatif. Le schéma `app` n'est pas déclaré dans
-`PGRST_DB_SCHEMA` visible dans [docker-compose.yml](../docker-compose.yml); il ne doit
+`PGRST_DB_SCHEMA` visible dans docker-compose.yml; il ne doit
 donc pas être exposé à PostgREST sans GRANT explicites. Une vue `employees_secure`
 doit également être `security_invoker` et recevoir des politiques/GRANT vérifiés.
 
@@ -254,7 +254,7 @@ doit également être `security_invoker` et recevoir des politiques/GRANT vérif
 
 Le SQL proposé suppose `pgcrypto` (présent comme extension disponible/créée), une
 clé de conteneur non versionnée et une transition depuis `employees.bank_account text`
-([20261028170000_core_hr.sql](../supabase/migrations/20261028170000_core_hr.sql):120-130).
+(20261028170000_core_hr.sql:120-130).
 Il ne faut pas déchiffrer la valeur en clair dans une vue destinée à tous les rôles :
 le masquage et l'autorisation doivent être séparés, et les fonctions de lecture doivent
 être testées avec chaque rôle.
@@ -278,10 +278,10 @@ le masquage et l'autorisation doivent être séparés, et les fonctions de lectu
 
 | Conflit | Vérification |
 |---|---|
-| X1 : phase 5 rouvre le multi-entreprise | Exact. La feuille de route valide D1 mono-société ([FEUILLE_DE_ROUTE_SOMA_RH.md](../docs/FEUILLE_DE_ROUTE_SOMA_RH.md):673) ; la cible réserve le multi-tenant à la phase 5 |
-| X2 : sorties bancaires/déclarations | Exact. D8 reporte la transmission et laisse la synthèse au comptable ([FEUILLE_DE_ROUTE_SOMA_RH.md](../docs/FEUILLE_DE_ROUTE_SOMA_RH.md):687) ; 5C les réintroduit |
-| X3 : coffre documentaire | Partiellement dépassé. La cible signale un coffre à décider, mais le dépôt possède déjà un coffre privé et des miniatures ([20261102173500_phase3_private_documents.sql](../supabase/migrations/20261102173500_phase3_private_documents.sql):3-56) |
-| X4 : SOC-008 abandonné | Exact. La feuille de route marque les données anonymisées comme abandonnées ([FEUILLE_DE_ROUTE_SOMA_RH.md](../docs/FEUILLE_DE_ROUTE_SOMA_RH.md):69-76), alors que la phase commerciale en aurait besoin |
+| X1 : phase 5 rouvre le multi-entreprise | Exact. La feuille de route valide D1 mono-société (FEUILLE_DE_ROUTE_SOMA_RH.md:673) ; la cible réserve le multi-tenant à la phase 5 |
+| X2 : sorties bancaires/déclarations | Exact. D8 reporte la transmission et laisse la synthèse au comptable (FEUILLE_DE_ROUTE_SOMA_RH.md:687) ; 5C les réintroduit |
+| X3 : coffre documentaire | Partiellement dépassé. La cible signale un coffre à décider, mais le dépôt possède déjà un coffre privé et des miniatures (20261102173500_phase3_private_documents.sql:3-56) |
+| X4 : SOC-008 abandonné | Exact. La feuille de route marque les données anonymisées comme abandonnées (FEUILLE_DE_ROUTE_SOMA_RH.md:69-76), alors que la phase commerciale en aurait besoin |
 | X5 : 6-12 semaines contre 12-18 mois | Exact, mais ce sont bien un pilote accompagné contre un SaaS autonome ; aucune preuve de durée réelle n'est disponible |
 
 Conflits supplémentaires :

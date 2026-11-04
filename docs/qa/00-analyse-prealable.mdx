@@ -1,0 +1,47 @@
+---
+title: "00 — Analyse préalable de la campagne"
+description: "État réel du projet avant la campagne de tests et écarts avec le prompt."
+---
+
+Date : 4 novembre 2026. Prompt source : [PROMPT_CAMPAGNE_TESTS_SOMA_RH](../PROMPT_CAMPAGNE_TESTS_SOMA_RH).
+
+## 1. Point de départ mesuré
+
+| Élément | Constat | Preuve |
+|---|---|---|
+| Conteneurs | postgres (sain), postgrest, api, pgadmin actifs | `scripts/local-health.ps1` : 4 PASS |
+| Données | **37 salariés**, 11 traitements de paie (2026-01 à 2026-11), 282 bulletins | requête SQL |
+| Schéma | 56 tables, 137 fonctions, RLS active sur toutes les tables | requête SQL |
+| Fonctions `security definer` | 0 sans `search_path` fixé | requête SQL |
+| Rôles de test existants | admin 2, rh 4, paie 3, manager 3, salarie 5 | table `user_roles` |
+| Sauvegarde avant campagne | `backups/soma-rh-20261104-120225.dump`, 1 049 entrées lisibles par `pg_restore -l` | contrôle |
+| Empreinte de paie | août 2026 : 26 bulletins, brut 5 017 834,603926, net 4 765 432,331600 : **PASS** | `scripts/verify-payroll.ps1` |
+| Tests SQL existants | 9 scripts dans `tests/sql/`, tous sans erreur | exécution |
+| Front | lint 0 erreur (3 avertissements), build OK | `npm run lint`, `npm run build` |
+
+## 2. Écarts entre le prompt et le projet
+
+| # | Le prompt dit | Réalité | Décision |
+|---|---|---|---|
+| E1 | « les 27 salariés actuels » | 37 salariés en base | Le chiffre est corrigé dans tous les rapports. |
+| E2 | Playwright dans `tests/`, « dossier vide » | `tests/` contient `fixtures/`, `sql/`, `unit/` ; pas de Playwright | On ajoute Playwright à côté de l'existant, sans rien déplacer. |
+| E3 | Mintlify installé | commande `mint` absente du PATH ; `docs/docs.json` est une liste plate de 23 fichiers | Installation de `mint` à vérifier en phase 3 ; navigation reconstruite en groupes. |
+| E4 | Moteur à comparer à un oracle | `PLAN_CONTROLE_QUALITE` et `LOCAL_TEST_MATRIX` citent encore PAY-002 et PAY-003 (brut 4 929 179,09, net 4 662 739,89) | Obsolètes (consigne de `CLAUDE.md`). Remplacés par l'oracle légal et l'empreinte interne. |
+| E5 | `payroll_settings` versionné par date | le moteur lit `payroll_settings_at(date de fin de période)` ; une seule ligne existe (depuis 2023-01-01) | Mécanisme présent. À prouver en phase 4 par un test avant et après une date de bascule (T-I14). |
+| E6 | CI complète | `ci.yml` ne fait que le scan PII, `lint` et `build` | Phase 10 : ajouter SQL, oracle, Playwright, couverture. |
+| E7 | `docs/qa/` | inexistant | Créé avec ce rapport. |
+| E8 | Rôles `admin`, `rh`, `paie`, `salarie` | cinq rôles : `manager` existe aussi | Les cinq rôles sont testés. |
+| E9 | Statuts de paie | Calculée, Validée, Payée, Clôturée (observés) | Matrice de transitions à compléter en phase 5. |
+
+## 3. Améliorations apportées au prompt
+
+1. **Ordre de travail** : sauvegarde, base de référence verte, puis seulement l'usine de données. Rien de destructif avant la phase 3.
+2. **Critère de sortie par phase** : chaque phase se termine par un rapport `NN-*.mdx`, un commit, et un contrôle `scan-pii.sh`, lint et build.
+3. **Une seule matrice de tests** : `LOCAL_TEST_MATRIX.md` est étendue, pas dupliquée ; les identifiants T-I1 à T-I20 sont conservés.
+4. **Oracle avant correction** : aucun changement du moteur sans écart prouvé par l'oracle et une source légale datée.
+5. **Registre des règles à confirmer** : tout chiffre légal non retrouvé sur une source officielle est marqué « à confirmer » et le comportement actuel est conservé.
+6. **Limite honnête** : certaines étapes (k6, OWASP ZAP, Firefox et WebKit, MFA) dépendent d'outils non installés. Elles sont listées « bloquées : outil absent » plutôt que simulées.
+
+## 4. Suite
+
+Voir [PLAN_DE_CAMPAGNE](./PLAN_DE_CAMPAGNE).

@@ -47,7 +47,7 @@ calcul et ne doit pas produire de bulletin non annulé.
 
 ## Fixtures anonymisées créées
 
-[`tests/fixtures/payroll/phase2-synthetic-cases.json`](../tests/fixtures/payroll/phase2-synthetic-cases.json)
+`tests/fixtures/payroll/phase2-synthetic-cases.json`
 contient 25 cas synthétiques (`SYN-001` à `SYN-025`) avec types CDI/CDD,
 parts fiscales et scénarios absence/maladie/heures supplémentaires. Aucun cas
 ne contient une identité ou une valeur copiée depuis un salarié réel.

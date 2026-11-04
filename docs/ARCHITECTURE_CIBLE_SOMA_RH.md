@@ -43,7 +43,7 @@ Les statuts de `payroll_entries` existent (`20261031190000…sql:35-43`) : **Bro
 | De → Vers | Qui déclenche | Contrôle bloquant (message explicite) |
 |---|---|---|
 | Brouillon → Calculée | `rh`, `paie`, `admin` | « Le mois précédent n'est pas validé » · « Salarié sans structure salariale : S00xx » (jamais d'échec silencieux) |
-| Calculée → En revue | préparateur | « Il reste N anomalies bloquantes : <liste> » |
+| Calculée → En revue | préparateur | « Il reste N anomalies bloquantes : &lt;liste&gt; » |
 | En revue → Approuvée | approbateur ≠ préparateur (I4) | « Vous avez préparé ce traitement : un autre rôle doit l'approuver » |
 | Approuvée → Validée | `admin` | « Total des ordres de paiement ≠ total des nets » (I8) |
 | Validée → Payée | `paie` ou `admin` | « Mode de règlement manquant pour N salariés » |
